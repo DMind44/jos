@@ -67,6 +67,7 @@ endif
 GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 
 CC	:= $(GCCPREFIX)gcc -pipe
+GDB	:= $(GCCPREFIX)gdb
 AS	:= $(GCCPREFIX)as
 AR	:= $(GCCPREFIX)ar
 LD	:= $(GCCPREFIX)ld
