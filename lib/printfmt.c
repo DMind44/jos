@@ -199,9 +199,9 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// unsigned decimal
 		case 'u':
-		        num = getuint(&ap, lflag);
+			num = getuint(&ap, lflag);
 			base = 10;
-		        goto number;
+			goto number;
 
 		// (unsigned) octal
 		case 'o':
