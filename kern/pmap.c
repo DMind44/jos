@@ -107,9 +107,12 @@ boot_alloc(uint32_t n)
 	    //alllocate pages to hold n bytes (don't initialize)
 	    for (; n > 4095; n -= 4096) { 
 		info = page_alloc(1);
+		// we need to update nextfree here: does this work?
+		nextfree += PGSIZE;
 	    }
 	    if (n != 0) {
-		info = page_alloc(1);	
+		info = page_alloc(1);
+		nextfree += PGSIZE;
 	    }
 	    return page2kva(info);
 	}
@@ -181,8 +184,10 @@ mem_init(void)
 	//    - the new image at UPAGES -- kernel R, user R
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
-	// Your code goes here:
-	kern_pgdir[UPAGES] = PTE_U | PTE_P;
+	// Your code goes here: (uncomment commented code later)
+	//int perm = PTE_U | PTE_P;
+	//void * la = PGADDR(PDX(UPAGES), PTX(UPAGES), PGOFF(UPAGES));
+	//page_insert(kern_pgdir, pages, la, perm);	 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
@@ -262,7 +267,12 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	for (i = 0; i < npages; i++) {
+	// mark physical page 0 as free
+	pages[0].pp_ref = 0;
+	pages[0].pp_link = page_free_list;
+	page_free_list = &pages[0];
+	// the rest of base memory is free
+	for (i = 1; i < npages_basemem; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
