@@ -267,15 +267,22 @@ page_init(void)
 		page_free_list = &pages[i];
 	}
 	// from kernbase to next_free
-	for (; i < boot_alloc(0); i++) {
+	// page2pa(pages[i]) < boot_alloc(0)	
+	for (; i < EXTPHYSMEM/PGSIZE; i++) {
 		pages[i].pp_ref = 1;
 	}
 
 	// from nextfree page to end
 	for (; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+		// check if pages[i] is below boot_alloc(0)
+		if (page2kva(&pages[i]) < boot_alloc(0)) {
+				pages[i].pp_ref = 1;
+		}
+		else {
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 }
 
@@ -295,12 +302,14 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	struct PageInfo * page;
+	// get first page in page_free_list
+	struct PageInfo *page = page_free_list;
+	page_free_list = page->pp_link;
 	page->pp_link = NULL;
 	if (alloc_flags & ALLOC_ZERO) {
-	    
+		memset(page, 0, PGSIZE); 
 	}
-	return 0;
+	return page;
 }
 
 //
@@ -313,6 +322,14 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+	if (pp->pp_ref != 0) {
+		panic("the page is still referenced.");
+	}
+        else if (pp->pp_link != NULL) {
+		panic("the page is already free.");
+	}
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 }
 
 //
