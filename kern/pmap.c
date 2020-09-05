@@ -103,18 +103,8 @@ boot_alloc(uint32_t n)
 	//
 	// LAB 2: Your code here.
 	if (n > 0) {
-	    PageInfo * info;
 	    //alllocate pages to hold n bytes (don't initialize)
-	    for (; n > 4095; n -= 4096) { 
-		info = page_alloc(1);
-		// we need to update nextfree here: does this work?
-		nextfree += PGSIZE;
-	    }
-	    if (n != 0) {
-		info = page_alloc(1);
-		nextfree += PGSIZE;
-	    }
-	    return page2kva(info);
+	    nextfree += ROUNDUP(n, PGSIZE);
 	}
 	return nextfree; 
 }
@@ -266,13 +256,19 @@ page_init(void)
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
+	size_t io_page_end = pa2page(EXTPHYSMEM);
+	size_t user_stack_page = pa2page(USTACKTOP);
+	size_t stack_end_page = pa2page(0); 
 	size_t i;
-	// mark physical page 0 as free
-	pages[0].pp_ref = 0;
-	pages[0].pp_link = page_free_list;
-	page_free_list = &pages[0];
+	// mark physical page 0 as in use
+	pages[0].pp_ref = 1;
 	// the rest of base memory is free
 	for (i = 1; i < npages_basemem; i++) {
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
+	}
+	for (i = user_stack_page; i < stack_end_page; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -295,7 +291,11 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
-	if (alloc_flags & ALLOC_ZERO)
+	struct PageInfo * page;
+	page->pp_link = NULL;
+	if (alloc_flags & ALLOC_ZERO) {
+	    
+	}
 	return 0;
 }
 
