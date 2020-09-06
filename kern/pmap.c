@@ -147,7 +147,7 @@ mem_init(void)
 	// array.  'npages' is the number of physical pages in memory.  Use memset
 	// to initialize all fields of each struct PageInfo to 0.
 	// Your code goes here:
-	struct PageInfo * pages = boot_alloc(0); 
+        pages = (struct PageInfo *) boot_alloc(npages*sizeof(struct PageInfo));
 	memset(pages, 0, npages*sizeof(struct PageInfo));
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -157,13 +157,9 @@ mem_init(void)
 	// or page_insert
 	page_init();
 
-	panic("what's happening?");
 	check_page_free_list(1);
-	panic("Made it through page_free_list");
 	check_page_alloc();
-	panic("Made it through page_alloc");
-	check_page();
-	panic("We Made It!");
+       	check_page();
 
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
@@ -259,6 +255,7 @@ page_init(void)
 	
 	size_t i;
 	// mark physical page 0 as in use
+        //cprintf("The size of pages[0] is:%s", pages[0]);
 	pages[0].pp_ref = 1;
 	// the rest of base memory is free
 	for (i = 1; i < npages_basemem; i++) {
@@ -266,24 +263,27 @@ page_init(void)
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 	}
-	// from kernbase to next_free
-	// page2pa(pages[i]) < boot_alloc(0)	
-	for (; i < EXTPHYSMEM/PGSIZE; i++) {
+	// from kernbase to end of IO	
+        
+	for (; i < EXTPHYSMEM/(PGSIZE/1024); i++) {
 		pages[i].pp_ref = 1;
 	}
 
-	// from nextfree page to end
+	// from EXTPHYSMEM to end
 	for (; i < npages; i++) {
 		// check if pages[i] is below boot_alloc(0)
+		/*
 		if (page2kva(&pages[i]) < boot_alloc(0)) {
 				pages[i].pp_ref = 1;
 		}
 		else {
-			pages[i].pp_ref = 0;
-			pages[i].pp_link = page_free_list;
-			page_free_list = &pages[i];
-		}
+		*/
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
+			//}
 	}
+        
 }
 
 //
