@@ -104,7 +104,10 @@ boot_alloc(uint32_t n)
 	// LAB 2: Your code here.
 	if (n > 0) {
 	    //alllocate pages to hold n bytes (don't initialize)
+	    char * alloc;
+	    alloc = nextfree;
 	    nextfree += ROUNDUP(n, PGSIZE);
+	    return alloc;
 	}
 	return nextfree; 
 }
@@ -258,13 +261,23 @@ page_init(void)
         //cprintf("The size of pages[0] is:%s", pages[0]);
 	pages[0].pp_ref = 1;
 	// the rest of base memory is free
-	for (i = 1; i < npages_basemem; i++) {
+	for (i = 1; i < npages; i++) {
+	    if (page2pa(&pages[i]) < (IOPHYSMEM)) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
+	    } else if (page2pa(&pages[i]) < EXTPHYSMEM) {
+		pages[i].pp_ref = 1;
+	    } else if (page2kva(&pages[i]) < boot_alloc(0)) {
+		pages[i].pp_ref = 1;
+	    } else {
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
+	    }
 	}
 	// from kernbase to end of IO	
-        
+        /*
 	for (; i < EXTPHYSMEM/(PGSIZE/1024); i++) {
 		pages[i].pp_ref = 1;
 	}
@@ -272,18 +285,15 @@ page_init(void)
 	// from EXTPHYSMEM to end
 	for (; i < npages; i++) {
 		// check if pages[i] is below boot_alloc(0)
-		/*
 		if (page2kva(&pages[i]) < boot_alloc(0)) {
 				pages[i].pp_ref = 1;
 		}
 		else {
-		*/
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
 			//}
-	}
-        
+	*/ 
 }
 
 //
