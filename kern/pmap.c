@@ -310,12 +310,16 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
+	// return NULL if OOM
+	if (!page_free_list) {
+	    return NULL;
+	}
 	// Fill this function in
 	// get first page in page_free_list
 	struct PageInfo *page = page_free_list;
 	page_free_list = page->pp_link;
 	page->pp_link = NULL;
-	if (alloc_flags & ALLOC_ZERO) {
+	if (alloc_flags && ALLOC_ZERO) {
 		memset(page2kva(page), 0, PGSIZE); 
 	}
 	return page;
