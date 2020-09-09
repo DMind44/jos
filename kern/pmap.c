@@ -381,8 +381,26 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Fill this function in
-	return NULL;
+	// ask Prof Rhodes about page2pa
+	uint32_t page_table_index = PTX(va);
+	uint32_t offset = PGOFF(va);
+        uint32_t page_num = PGNUM(va);
+	struct PageInfo * page = &(pages[page_num]);
+	pte_t *PTE = (pde_t *) pgdir[page_table_index + offset];
+	if (page->pp_ref == 0) {
+		if (create) {
+			if (page_alloc(1)) {
+				page->pp_ref += 1;
+			}
+			else {
+				return NULL;
+			}
+		}
+		else {
+			return NULL;
+		}
+	}
+	return PTE;
 }
 
 //
@@ -400,6 +418,12 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	// Ask Prof Rhodes about shifting to the left for perm.
+	size_t i;
+	for (i = 0; i < size; i++) {
+		pte_t * PTE = pgdir_walk(pgdir, va + i, false);
+		*PTE = pa + i & perm|PTE;
+	}
 }
 
 //
