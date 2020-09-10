@@ -418,11 +418,10 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-	// Ask Prof Rhodes about shifting to the left for perm.
 	size_t i;
-	for (i = 0; i < size; i++) {
-		pte_t * PTE = pgdir_walk(pgdir, va + i, false);
-		*PTE = pa + i & perm|PTE;
+	for (i = 0; i < size/PGSIZE; i++) {
+		pte_t * ptePtr = pgdir_walk(pgdir, (void *)va + (i*PGSIZE), true);
+		*ptePtr = (pa + i) | perm | PTE_P;
 	}
 }
 
@@ -454,7 +453,8 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	// Fill this function in
+	physaddr_t pa = page2pa(pp);
+	
 	return 0;
 }
 
@@ -472,8 +472,15 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	// Fill this function in
-	return NULL;
+	pte_t * pte = pgdir_walk(pgdir, va, 0);
+	struct PageInfo* page = pa2page(*pte);
+	if (!((uint32_t)va & 1)) {
+	    return NULL; 
+	}
+	if (pte_store) {
+	    *pte = (pte_t) pte_store;
+	}
+	return page;
 }
 
 //
@@ -494,7 +501,16 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	// Fill this function in
+	struct PageInfo *page = page_lookup(pgdir, va, 0);
+	if (page) {
+	    page->pp_ref -= 1;
+	    if (!page->pp_ref) {
+		page_free(page);
+	    }
+	    pte_t *pte = pgdir_walk(pgdir, va, 0);
+	    *pte = 0;
+	    tlb_invalidate(pgdir, va);
+	}
 }
 
 //
