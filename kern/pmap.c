@@ -454,7 +454,15 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	physaddr_t pa = page2pa(pp);
-	
+	pte_t *ptePtr = pgdir_walk(pgdir, va, false);
+	if (ptePtr) {
+		page_remove(ptePtr);
+	}
+	ptePtr = pgdir_walk(pgdire, va, true);
+	// We have control over when we increment to ref count : Pay attention for later!
+	if (ptePtr) {
+		*ptePtr = page2pa(pp);
+	}
 	return 0;
 }
 
