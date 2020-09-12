@@ -381,16 +381,18 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// ask Prof Rhodes about page2pa
 	uint32_t page_table_index = PTX(va);
 	uint32_t offset = PGOFF(va);
-        uint32_t page_num = PGNUM(va);
-	struct PageInfo * page = &(pages[page_num]);
-	pte_t *PTE = (pde_t *) pgdir[page_table_index + offset];
-	if (page->pp_ref == 0) {
+	uint32_t pdx = PDX(va);
+	//struct PageInfo * page = &(pages[page_num]);
+	pte_t *pte = (pte_t *) pgdir[pdx + page_table_index + offset];
+	if (!(*pte & PTE_P)) {
 		if (create) {
-			if (page_alloc(1)) {
-				page->pp_ref += 1;
+			struct PageInfo * page = page_alloc(1);
+			if (page) {
+			    page->pp_ref += 1;
+			    *pte = (pte_t) page2pa(page);
+			    return pte;
 			}
 			else {
 				return NULL;
@@ -400,7 +402,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 			return NULL;
 		}
 	}
-	return PTE;
+	return pte;
 }
 
 //
@@ -456,12 +458,15 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	physaddr_t pa = page2pa(pp);
 	pte_t *ptePtr = pgdir_walk(pgdir, va, false);
 	if (ptePtr) {
-		page_remove(ptePtr);
+	    page_remove(pgdir, va);
 	}
-	ptePtr = pgdir_walk(pgdire, va, true);
+	ptePtr = pgdir_walk(pgdir, va, true);
 	// We have control over when we increment to ref count : Pay attention for later!
-	if (ptePtr) {
-		*ptePtr = page2pa(pp);
+	if (ptePtr) { 
+	    *ptePtr = pa | perm | PTE_P;
+	    //pp->pp_ref += 1;
+	} else {
+	    return -E_NO_MEM;
 	}
 	return 0;
 }
@@ -481,7 +486,7 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	pte_t * pte = pgdir_walk(pgdir, va, 0);
-	struct PageInfo* page = pa2page(*pte);
+	struct PageInfo* page = pa2page(PTE_ADDR(pte));
 	if (!((uint32_t)va & 1)) {
 	    return NULL; 
 	}
@@ -511,10 +516,7 @@ page_remove(pde_t *pgdir, void *va)
 {
 	struct PageInfo *page = page_lookup(pgdir, va, 0);
 	if (page) {
-	    page->pp_ref -= 1;
-	    if (!page->pp_ref) {
-		page_free(page);
-	    }
+	    page_decref(page);
 	    pte_t *pte = pgdir_walk(pgdir, va, 0);
 	    *pte = 0;
 	    tlb_invalidate(pgdir, va);
