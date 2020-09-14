@@ -384,9 +384,10 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	uint32_t page_table_index = PTX(va);
 	uint32_t offset = PGOFF(va);
 	uint32_t pdx = PDX(va);
-	//struct PageInfo * page = &(pages[page_num]);
-	pte_t *pte = (pte_t *) pgdir[pdx + page_table_index + offset];
-	if (!(*pte & PTE_P)) {
+	pgdir = &pgdir[pdx];
+	pte_t *pte = (pte_t *) PTE_ADDR(*pgdir);
+	//pte = KADDR(PTE_ADDR(pte[page_table_index]));
+	if (!(pte[page_table_index] & PTE_P)) {
 		if (create) {
 			struct PageInfo * page = page_alloc(1);
 			if (page) {
@@ -402,7 +403,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 			return NULL;
 		}
 	}
-	return pte;
+	return pte + page_table_index;
 }
 
 //
@@ -462,8 +463,9 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	}
 	ptePtr = pgdir_walk(pgdir, va, true);
 	// We have control over when we increment to ref count : Pay attention for later!
-	if (ptePtr) { 
-	    *ptePtr = pa | perm | PTE_P;
+	if (ptePtr) {
+	     //*va = pa;
+	    //*ptePtr = pa | perm | PTE_P;
 	    //pp->pp_ref += 1;
 	} else {
 	    return -E_NO_MEM;
