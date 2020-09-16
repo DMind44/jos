@@ -314,7 +314,6 @@ page_alloc(int alloc_flags)
 	if (!page_free_list) {
 	    return NULL;
 	}
-	// Fill this function in
 	// get first page in page_free_list
 	struct PageInfo *page = page_free_list;
 	page_free_list = page->pp_link;
@@ -381,10 +380,30 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	uint32_t page_table_index = PTX(va);
-	uint32_t offset = PGOFF(va);
-	uint32_t pdx = PDX(va);
-	pgdir = &pgdir[pdx];
+	pde_t * pde;
+	pte_t * pte;
+        //uint32_t page_table_index = PTX(va);                                                                                    
+        //uint32_t offset = PGOFF(va);                                                                                            
+        //uint32_t pdx = PDX(va);                                                                                            
+        pde = &(pgdir[PDX(va)]);
+        if (*pde & PTE_P) {
+		pte = (pte_t *) KADDR(PTE_ADDR(*pde));
+	}
+        else {
+                if (!create) {
+			return 0;
+		}
+		struct PageInfo * page = page_alloc(ALLOC_ZERO);
+		if (!page) {
+			return 0;
+		}
+		page->pp_ref ++;
+                pte = (pte_t *) page2kva(page);
+                *pde = PADDR(pte) | PTE_P | PTE_W | PTE_U;
+	}
+        return &(pte[PTX(va)]);
+}		    
+/*
 	pte_t *pte = (pte_t *) PTE_ADDR(*pgdir);
 	//pte = KADDR(PTE_ADDR(pte[page_table_index]));
 	if (!(pte[page_table_index] & PTE_P)) {
@@ -404,7 +423,8 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		}
 	}
 	return pte + page_table_index;
-}
+		
+	}*/
 
 //
 // Map [va, va+size) of virtual address space to physical [pa, pa+size)
@@ -458,18 +478,16 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	physaddr_t pa = page2pa(pp);
 	pte_t *ptePtr = pgdir_walk(pgdir, va, false);
+	pp->pp_ref ++;
 	if (ptePtr) {
 	    page_remove(pgdir, va);
 	}
 	ptePtr = pgdir_walk(pgdir, va, true);
-	// We have control over when we increment to ref count : Pay attention for later!
-	if (ptePtr) {
-	     //*va = pa;
-	    //*ptePtr = pa | perm | PTE_P;
-	    //pp->pp_ref += 1;
-	} else {
-	    return -E_NO_MEM;
+	if (!ptePtr) {
+		pp->pp_ref --;
+		return -E_NO_MEM;
 	}
+        *ptePtr = pa | perm | PTE_P;
 	return 0;
 }
 
@@ -487,11 +505,12 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	pte_t * pte = pgdir_walk(pgdir, va, 0);
-	struct PageInfo* page = pa2page(PTE_ADDR(pte));
 	if (!((uint32_t)va & 1)) {
-	    return NULL; 
+          return NULL; 
 	}
+	// moved struct to after if 
+        pte_t * pte = pgdir_walk(pgdir, va, 0);
+	struct PageInfo* page = pa2page(PTE_ADDR(pte));
 	if (pte_store) {
 	    *pte = (pte_t) pte_store;
 	}
@@ -522,6 +541,7 @@ page_remove(pde_t *pgdir, void *va)
 	    pte_t *pte = pgdir_walk(pgdir, va, 0);
 	    *pte = 0;
 	    tlb_invalidate(pgdir, va);
+	 		   
 	}
 }
 
@@ -789,21 +809,28 @@ check_page(void)
 	// free pp0 and try again: pp0 should be used for page table
 	page_free(pp0);
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) == 0);
+	cprintf("%x\n", PTE_ADDR(kern_pgdir[0]));
+        cprintf("%x\n", page2pa(pp0));
 	assert(PTE_ADDR(kern_pgdir[0]) == page2pa(pp0));
 	assert(check_va2pa(kern_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
 	assert(pp0->pp_ref == 1);
 
 	// should be able to map pp2 at PGSIZE because pp0 is already allocated for page table
+	cprintf("1\n");
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
+	cprintf("2\n");
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
 
 	// should be no free memory
 	assert(!page_alloc(0));
+	cprintf("3\n");
 
 	// should be able to map pp2 at PGSIZE because it's already there
 	assert(page_insert(kern_pgdir, pp2, (void*) PGSIZE, PTE_W) == 0);
+	cprintf("4\n");
+	cprintf("check_va2pa :%x  page2pa :%x pp2->ref: %d \n", check_va2pa(kern_pgdir, PGSIZE), page2pa(pp2), pp2->pp_ref);
 	assert(check_va2pa(kern_pgdir, PGSIZE) == page2pa(pp2));
 	assert(pp2->pp_ref == 1);
 
