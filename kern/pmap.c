@@ -172,10 +172,11 @@ mem_init(void)
 	//    - the new image at UPAGES -- kernel R, user R
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
-	// Your code goes here: (uncomment commented code later)
-	//int perm = PTE_U | PTE_P;
-	//void * la = PGADDR(PDX(UPAGES), PTX(UPAGES), PGOFF(UPAGES));
-	//page_insert(kern_pgdir, pages, la, perm);	 
+	// Your code goes here: 
+	//void * va = PGADDR(PDX(UPAGES), PTX(UPAGES), PGOFF(UPAGES));
+	// map UPAGES read only
+	boot_map_region(kern_pgdir, UPAGES, npages*PGSIZE, 
+			PADDR(pages), PTE_U|PTE_P);
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
 	// stack.  The kernel stack grows down from virtual address KSTACKTOP.
