@@ -1,0 +1,1 @@
+Question 1) We think that the type of variable x is uintptr_t because physical addresses cannot be deferenced sensibly in kernel.
