@@ -327,7 +327,6 @@ page_decref(struct PageInfo* pp)
 //    - Otherwise, the new page's reference count is incremented,
 //	the page is cleared,
 //	and pgdir_walk returns a pointer into the new page table page.
-
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
