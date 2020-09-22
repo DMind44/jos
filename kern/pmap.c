@@ -145,7 +145,7 @@ mem_init(void)
 	// The kernel uses this array to keep track of physical pages: for
 	// each physical page, there is a corresponding struct PageInfo in this
 	// array. 
-        pages = (struct PageInfo *) boot_alloc(npages*sizeof(struct PageInfo));
+	pages = (struct PageInfo *) boot_alloc(npages*sizeof(struct PageInfo));
 	memset(pages, 0, npages*sizeof(struct PageInfo));
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -189,7 +189,7 @@ mem_init(void)
 	// We might not have 2^32 - KERNBASE bytes of physical memory, but
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
-        boot_map_region(kern_pgdir, KERNBASE, ~0 - KERNBASE, 0, PTE_W | PTE_P);
+	boot_map_region(kern_pgdir, KERNBASE, ~0 - KERNBASE, 0, PTE_W | PTE_P);
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -298,7 +298,7 @@ page_free(struct PageInfo *pp)
 	if (pp->pp_ref != 0) {
 		panic("the page is still referenced.");
 	}
-        else if (pp->pp_link != NULL) {
+		else if (pp->pp_link != NULL) {
 		panic("the page is already free.");
 	}
 	pp->pp_link = page_free_list;
@@ -348,7 +348,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		pte = (pte_t *) page2kva(page);
 		*pde = PADDR(pte) | PTE_P | PTE_W | PTE_U;
 	}
-        return &(pte[PTX(va)]);
+	return &(pte[PTX(va)]);
 } 
 //
 // Map [va, va+size) of virtual address space to physical [pa, pa+size)
@@ -403,7 +403,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 	if (*pte & PTE_P) {
 		page_remove(pgdir, va);
 	}
-        *pte = pa | perm | PTE_P;
+	*pte = pa | perm | PTE_P;
 	return 0;
 }
 
