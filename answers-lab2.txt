@@ -1,1 +1,13 @@
-Question 1) We think that the type of variable x is uintptr_t because physical addresses cannot be deferenced sensibly in kernel.
+1) We think that the type of variable x is uintptr_t because physical addresses cannot be deferenced sensibly in kernel.
+khjhbhjh
+2)
+page addr	points to
+1   0x00400000: memory for temporary page mapping
+2   0x00800000: where programs generally begin
+    		page guard
+		bottom of usable stack
+952 0xeebfe000: top of user stack
+953 0xeec00000: user read only page info (UPAGES)
+955 0xef400000: user read only page table
+957 0xef800000: memory mapped I/0
+
