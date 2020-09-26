@@ -100,13 +100,9 @@ boot_alloc(uint32_t n)
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
-	if (n > 0) {
-	    //alllocate pages to hold n bytes (don't initialize)
-	    result = nextfree;
-	    nextfree += ROUNDUP(n, PGSIZE);
-	    return result;
-	}
-	return nextfree; 
+	result = nextfree;
+	nextfree += ROUNDUP(n, PGSIZE);
+	return result; 
 }
 
 // Set up a two-level page table:
@@ -189,7 +185,7 @@ mem_init(void)
 	// We might not have 2^32 - KERNBASE bytes of physical memory, but
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
-	boot_map_region(kern_pgdir, KERNBASE, ~0 - KERNBASE, 0, PTE_W | PTE_P);
+	boot_map_region(kern_pgdir, KERNBASE, 0x100000000 - KERNBASE, 0, PTE_W | PTE_P);
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -243,19 +239,17 @@ page_init(void)
 	pages[0].pp_ref = 1;
 	// the rest of base memory is free
 	for (i = 1; i < npages; i++) {
-	    if (page2pa(&pages[i]) < (IOPHYSMEM)) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
-	    } else if (page2pa(&pages[i]) < EXTPHYSMEM) {
-		pages[i].pp_ref = 1;
-	    } else if (page2kva(&pages[i]) < boot_alloc(0)) {
-		pages[i].pp_ref = 1;
-	    } else {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
-	    }
+		if (page2pa(&pages[i]) < IOPHYSMEM) {
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		} else if (page2kva(&pages[i]) < boot_alloc(0)) {
+			pages[i].pp_ref = 1;
+		} else {
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 }
 
@@ -276,7 +270,7 @@ page_alloc(int alloc_flags)
 {
 	// return NULL if OOM
 	if (!page_free_list) {
-	    return NULL;
+		return NULL;
 	}
 	// get first page in page_free_list
 	struct PageInfo *page = page_free_list;
@@ -297,8 +291,7 @@ page_free(struct PageInfo *pp)
 {
 	if (pp->pp_ref != 0) {
 		panic("the page is still referenced.");
-	}
-		else if (pp->pp_link != NULL) {
+	} else if (pp->pp_link != NULL) {
 		panic("the page is already free.");
 	}
 	pp->pp_link = page_free_list;
@@ -332,8 +325,8 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	pde_t * pde;
 	pte_t * pte;
-    pde = &(pgdir[PDX(va)]);
-    if (*pde & PTE_P) {
+	pde = &(pgdir[PDX(va)]);
+	if (*pde & PTE_P) {
 		pte = (pte_t *) KADDR(PTE_ADDR(*pde));
 	} else {
 		if (!create) {
@@ -419,7 +412,7 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 
-    pte_t * pte = pgdir_walk(pgdir, va, 0);
+	pte_t * pte = pgdir_walk(pgdir, va, 0);
 	if (!pte) {
 		return NULL; 
 	}
