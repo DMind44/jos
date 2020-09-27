@@ -207,16 +207,13 @@ grade:
 	  (echo "'make clean' failed.  HINT: Do you have another running instance of JOS?" && exit 1)
 	./grade-lab$(LAB) $(GRADEFLAGS)
 
-# Notify that a lab has been submitted 
-# Provide user, lab #, and commit ID 
-
 handin: handin-check
 	@echo "Passes all handin checks."
 	@echo "Go to GitHub and create a pull request."
-	@echo "The base should be 'main' branch and compare should be 'lab$(LAB)' branch."
+	@echo "The base should be 'lab$(LAB)-no-code' branch and compare should be 'lab$(LAB)' branch."
 	@echo "Make yourself the assignee and make your instructor the reviewer.  "
 	@echo "The instructor will be notified of your pull request and will make comments."
-	@echo "Eventually, the instructor will approve your pull request. At that point, you can merge it back into the main branch."
+	@echo "Eventually, the instructor will approve your pull request. At that point, you can either merge it into the 'lab$(LAB)-no-code' branch, or don't bother merging and just close the pull request."
 
 handin-check: grade
 	@if test -n "`grep '^     ' */*.[ch]`"; then \
