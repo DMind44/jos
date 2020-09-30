@@ -187,9 +187,8 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
-	//pde_t * pgdir = kern_pgdir;
-	//page_insert(kern_pgdir, p, page2kva(p), PTE_P | PTE_U);
-	//e->env_pgdir = (pde_t *) page2kva(p);
+	e->env_pgdir = (pde_t *) page2kva(p);
+	memmove(e->env_pgdir, kern_pgdir, PGSIZE);
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_P | PTE_U;
@@ -277,6 +276,11 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+	for (void * roundVa = ROUNDDOWN(va, PGSIZE); 
+		roundVa < ROUNDUP(va+len, PGSIZE); roundVa++) {
+			struct PageInfo * page = page_alloc(0);
+			page_insert(e->env_pgdir, page, roundVa, PTE_W | PTE_U | PTE_P);
+		}
 }
 
 //
@@ -333,11 +337,24 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	struct Proghdr *ph, *eph;
+	struct Elf* elfhdr = (struct Elf *) binary;
+	ph = (struct Proghdr *) (binary + elfhdr->e_phoff);
+	eph = ph + elfhdr->e_phnum;
+	for (; ph < eph; ph++) {
+		if (ph->p_type == ELF_PROG_LOAD) {
+			void * va = (void *) ph->p_va;
+			region_alloc(e, va, ph->p_memsz);
+			memmove(va, binary + ph->p_offset, ph->p_filesz);
+			memset(va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+		}
+	}
+	
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
-
-	// LAB 3: Your code here.
+	struct PageInfo * stack = page_alloc(ALLOC_ZERO);
+	page_insert(e->env_pgdir, stack, (void *) USTACKTOP - PGSIZE, PTE_U | PTE_W | PTE_P);
 }
 
 //
@@ -350,7 +367,10 @@ load_icode(struct Env *e, uint8_t *binary)
 void
 env_create(uint8_t *binary, enum EnvType type)
 {
-	// LAB 3: Your code here.
+	struct Env * e;
+	env_alloc(&e, 0);
+	load_icode(e, binary);
+	e->env_type = type;
 }
 
 //
@@ -467,7 +487,14 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-
-	panic("env_run not yet implemented");
+	if (curenv != e) {
+		if (curenv != NULL && curenv->env_status = ENV_RUNNING)
+			curenv->env_status = ENV_RUNNABLE;
+		curenv = e;
+		curenv->env_status = ENV_RUNNING;
+		curenv->env_runs++;
+		lcr3(PADDR(e->env_pgdir));
+	}
+	env_pop_tf(&e->env_tf);
 }
 
