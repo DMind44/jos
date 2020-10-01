@@ -337,6 +337,8 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+	if (curenv)
+		panic("Not in kernel initialization!");
 	struct Proghdr *ph, *eph;
 	struct Elf* elfhdr = (struct Elf *) binary; //UTEXT;
 	ph = (struct Proghdr *) (binary + elfhdr->e_phoff);
@@ -346,18 +348,20 @@ load_icode(struct Env *e, uint8_t *binary)
 		if (ph->p_type == ELF_PROG_LOAD) {
 			void * va = (void *) ph->p_va;
 			region_alloc(e, va, ph->p_memsz);
-		        memmove(va, (void *)(binary + ph->p_offset), ph->p_filesz);
+			memmove(va, (void *)(binary + ph->p_offset), ph->p_filesz);
 			//readseg(ph->p_pa, ph->memsz, binary + ph->p_offset);
 			memset(va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
 		}
 	}
+	e->env_tf.tf_eip = (uintptr_t) elfhdr->e_entry;
 	lcr3(PADDR(kern_pgdir));
 	
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
-	struct PageInfo * stack = page_alloc(ALLOC_ZERO);
-	page_insert(e->env_pgdir, stack, (void *) USTACKTOP - PGSIZE, PTE_U | PTE_W | PTE_P);
+	//struct PageInfo * stack = page_alloc(ALLOC_ZERO);
+	region_alloc(e, (void *) USTACKTOP - PGSIZE, PGSIZE);
+	//page_insert(e->env_pgdir, stack, (void *) USTACKTOP - PGSIZE, PTE_U | PTE_W | PTE_P);
 }
 
 //
