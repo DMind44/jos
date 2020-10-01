@@ -338,17 +338,20 @@ load_icode(struct Env *e, uint8_t *binary)
 
 	// LAB 3: Your code here.
 	struct Proghdr *ph, *eph;
-	struct Elf* elfhdr = (struct Elf *) binary;
+	struct Elf* elfhdr = (struct Elf *) binary; //UTEXT;
 	ph = (struct Proghdr *) (binary + elfhdr->e_phoff);
 	eph = ph + elfhdr->e_phnum;
+	lcr3(PADDR(e->env_pgdir));
 	for (; ph < eph; ph++) {
 		if (ph->p_type == ELF_PROG_LOAD) {
 			void * va = (void *) ph->p_va;
 			region_alloc(e, va, ph->p_memsz);
-			memmove(va, binary + ph->p_offset, ph->p_filesz);
+		        memmove(va, (void *)(binary + ph->p_offset), ph->p_filesz);
+			//readseg(ph->p_pa, ph->memsz, binary + ph->p_offset);
 			memset(va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
 		}
 	}
+	lcr3(PADDR(kern_pgdir));
 	
 
 	// Now map one page for the program's initial stack
@@ -488,7 +491,7 @@ env_run(struct Env *e)
 
 	// LAB 3: Your code here.
 	if (curenv != e) {
-		if (curenv != NULL && curenv->env_status = ENV_RUNNING)
+		if (curenv != NULL && curenv->env_status == ENV_RUNNING)
 			curenv->env_status = ENV_RUNNABLE;
 		curenv = e;
 		curenv->env_status = ENV_RUNNING;
