@@ -46,9 +46,15 @@
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
-
-
-
+	TRAPHANDLER(DIVIDE, T_DIVIDE);
+	TRAPHANDLER(DEBUG, T_DEBUG);
+	TRAPHANDLER(NMI, T_NMI);
+	TRAPHANDLER(BRKPT, T_BRKPT);
+	TRAPHANDLER(FLOW, T_OFLOW);
+	TRAPHANDLER(BOUND, T_BOUND);
+	TRAPHANDLER(ILLOP, T_ILLOP);
+	TRAPHANDLER(DEVICE, T_DEVICE);
+	TRAPHANDLER(DBLFLT, T_DBLFLT); 
 /*
  * Lab 3: Your code here for _alltraps
  */
