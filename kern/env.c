@@ -340,7 +340,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	if (curenv)
 		panic("Not in kernel initialization!");
 	struct Proghdr *ph, *eph;
-	struct Elf* elfhdr = (struct Elf *) binary; //UTEXT;
+	struct Elf* elfhdr = (struct Elf *) binary; 
 	ph = (struct Proghdr *) (binary + elfhdr->e_phoff);
 	eph = ph + elfhdr->e_phnum;
 	lcr3(PADDR(e->env_pgdir));
@@ -494,14 +494,15 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-	if (curenv != e) {
-		if (curenv != NULL && curenv->env_status == ENV_RUNNING)
+	if (curenv != e && curenv != NULL) {
+		if (curenv->env_status == ENV_RUNNING)
 			curenv->env_status = ENV_RUNNABLE;
-		curenv = e;
-		curenv->env_status = ENV_RUNNING;
-		curenv->env_runs++;
-		lcr3(PADDR(e->env_pgdir));
 	}
+	curenv = e;
+	curenv->env_status = ENV_RUNNING;
+	curenv->env_runs++;
+	lcr3(PADDR(e->env_pgdir));
+	cprintf("env tf %x\n", &e->env_tf);
 	env_pop_tf(&e->env_tf);
 }
 
