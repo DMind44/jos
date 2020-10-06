@@ -87,14 +87,14 @@ trap_init(void)
 //	void SYSCALL();
 	
 	SETGATE(idt[0], 1, GD_KT, &DIVIDE_ERROR, 0);
-	SETGATE(idt[1], 1, GD_KT, &DEBUG, 0);
+	SETGATE(idt[1], 1, GD_KT, &DEBUG, 3);
 	SETGATE(idt[2], 0, GD_KT, &NON_MASKABLE_INTERRUPT, 0);
 	SETGATE(idt[3], 1, GD_KT, &BREAKPOINT, 3);
 	SETGATE(idt[4], 1, GD_KT, &OVERFLOW, 0);
 	SETGATE(idt[5], 1, GD_KT, &BOUND_RANGE_EXCEEDED, 0);
-	SETGATE(idt[6], 1, GD_KT, &INVALID_OPCODE, 3);
+	SETGATE(idt[6], 1, GD_KT, &INVALID_OPCODE, 0);
 	SETGATE(idt[7], 1, GD_KT, &DEVICE_NOT_AVAILABLE, 0);
-	SETGATE(idt[8], 1, GD_KT, &DOUBLE_FAULT, 3);
+	SETGATE(idt[8], 1, GD_KT, &DOUBLE_FAULT, 0);
 	SETGATE(idt[10], 1, GD_KT, &INVALID_TSS, 0);
 	SETGATE(idt[11], 1, GD_KT, &SEGMENT_NOT_PRESENT, 0);
 	SETGATE(idt[12], 1, GD_KT, &STACK_FAULT, 0);
@@ -104,7 +104,7 @@ trap_init(void)
 	SETGATE(idt[17], 1, GD_KT, &ALIGNMENT_CHECK, 0);
 	SETGATE(idt[18], 1, GD_KT, &MACHINE_CHECK, 0);
 	SETGATE(idt[19], 1, GD_KT, &SIMD_FLOATING_POINT_EXCEPTION, 0);
-//	SETGATE(idt[48], 0, GD_KD >> 3, &SYSCALL, gdt[48].sd_dpl);
+//	SETGATE(idt[48], 0, GD_KD, &SYSCALL, gdt[48].sd_dpl);
 	
 	// Per-CPU setup 
 	trap_init_percpu();
