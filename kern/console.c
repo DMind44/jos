@@ -191,7 +191,7 @@ cga_putc(int c)
 		break;
 	}
 
-	// What is the purpose of this?
+	// Creates a new line whenever CRT_SIZE has been exhausted
 	if (crt_pos >= CRT_SIZE) {
 		int i;
 
