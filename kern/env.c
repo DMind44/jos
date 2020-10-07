@@ -115,7 +115,6 @@ void
 env_init(void)
 {
 	// Set up envs array
-	// LAB 3: Your code here.
 	size_t i;
 	env_free_list = &envs[0];
 	for (i = 0; i < NENV; i++) {
@@ -186,7 +185,6 @@ env_setup_vm(struct Env *e)
 	//	pp_ref for env_free to work correctly.
 	//    - The functions in kern/pmap.h are handy.
 
-	// LAB 3: Your code here.
 	e->env_pgdir = (pde_t *) page2kva(p);
 	memmove(e->env_pgdir, kern_pgdir, PGSIZE);
 	// UVPT maps the env's own page table read-only.
@@ -269,9 +267,6 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 static void
 region_alloc(struct Env *e, void *va, size_t len)
 {
-	// LAB 3: Your code here.
-	// (But only if you need it for load_icode.)
-	//
 	// Hint: It is easier to use region_alloc if the caller can pass
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
@@ -336,7 +331,6 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  to make sure that the environment starts executing there.
 	//  What?  (See env_run() and env_pop_tf() below.)
 
-	// LAB 3: Your code here.
 	if (curenv)
 		panic("Not in kernel initialization!");
 	struct Proghdr *ph, *eph;
@@ -349,7 +343,6 @@ load_icode(struct Env *e, uint8_t *binary)
 			void * va = (void *) ph->p_va;
 			region_alloc(e, va, ph->p_memsz);
 			memmove(va, (void *)(binary + ph->p_offset), ph->p_filesz);
-			//readseg(ph->p_pa, ph->memsz, binary + ph->p_offset);
 			memset(va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
 		}
 	}
@@ -359,9 +352,7 @@ load_icode(struct Env *e, uint8_t *binary)
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
-	//struct PageInfo * stack = page_alloc(ALLOC_ZERO);
 	region_alloc(e, (void *) USTACKTOP - PGSIZE, PGSIZE);
-	//page_insert(e->env_pgdir, stack, (void *) USTACKTOP - PGSIZE, PTE_U | PTE_W | PTE_P);
 }
 
 //
@@ -493,7 +484,6 @@ env_run(struct Env *e)
 	//	and make sure you have set the relevant parts of
 	//	e->env_tf to sensible values.
 
-	// LAB 3: Your code here.
 	if (curenv != e && curenv != NULL) {
 		if (curenv->env_status == ENV_RUNNING)
 			curenv->env_status = ENV_RUNNABLE;
