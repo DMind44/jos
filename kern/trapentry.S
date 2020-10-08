@@ -65,7 +65,8 @@
 	TRAPHANDLER(ALIGNMENT_CHECK, T_ALIGN)
 	TRAPHANDLER_NOEC(MACHINE_CHECK, T_MCHK)
 	TRAPHANDLER_NOEC(SIMD_FLOATING_POINT_EXCEPTION, T_SIMDERR)
-
+	TRAPHANDLER_NOEC(SYSTEM_CALL, T_SYSCALL)
+	
 	//push values to make the stack look like a struct Trapframe
 _alltraps:
 	# Build trap frame.

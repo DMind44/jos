@@ -86,6 +86,7 @@ trap_init(void)
 	void ALIGNMENT_CHECK();
 	void MACHINE_CHECK();
 	void SIMD_FLOATING_POINT_EXCEPTION();
+	void SYSTEM_CALL();
 	
 	SETGATE(idt[0], 1, GD_KT, &DIVIDE_ERROR, 0);
 	SETGATE(idt[1], 1, GD_KT, &DEBUG, 3);
@@ -105,7 +106,7 @@ trap_init(void)
 	SETGATE(idt[17], 1, GD_KT, &ALIGNMENT_CHECK, 0);
 	SETGATE(idt[18], 1, GD_KT, &MACHINE_CHECK, 0);
 	SETGATE(idt[19], 1, GD_KT, &SIMD_FLOATING_POINT_EXCEPTION, 0);
-	
+	SETGATE(idt[48], 0, GD_KT, &SYSTEM_CALL, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -185,6 +186,20 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 4: Your code here.
+	switch(tf->tf_trapno) {
+	case T_PGFLT:
+		page_fault_handler(tf);
+		break;
+
+	case T_BRKPT:
+		monitor(tf);
+		break;
+		// add case for system calls
+		// from the lab instructions
+		// syscallno is in eax
+		// 5 arguments are in edx, ecx, ebx, edi, esi
+		// how do we arrange for the return value to be passed back through eax
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
