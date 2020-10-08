@@ -199,8 +199,13 @@ trap_dispatch(struct Trapframe *tf)
 		// syscallno is in eax
 		// 5 arguments are in edx, ecx, ebx, edi, esi
 		// how do we arrange for the return value to be passed back through eax
+	case T_SYSCALL: {
+		struct PushRegs * regs = &tf->tf_regs;
+		regs->reg_eax = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, regs->reg_ebx,
+				regs->reg_edi, regs->reg_esi);
+		break;
 	}
-
+	default:
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
@@ -209,6 +214,9 @@ trap_dispatch(struct Trapframe *tf)
 		env_destroy(curenv);
 		return;
 	}
+
+	}
+
 }
 
 void
@@ -261,10 +269,14 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 4: Your code here.
+	// check low bits of tf_cs
+	if ((tf->tf_cs & 3) == 0) {
+		panic("Kernel Page Fault");
+	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
-
+	user_mem_assert(curenv, (void *) ROUNDDOWN(fault_va, PGSIZE), PGSIZE, tf->tf_err & (PTE_U | PTE_W |PTE_P));
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
