@@ -68,9 +68,9 @@ _alltraps:
 	pushl %es		
 	pushal
 	# Set up data segment
-	movw $(GD_KD), %eax	
-	movw %eax, %ds		
-	movw %eax, %es		
+	movw $(GD_KD), %ecx	
+	movw %ecx, %ds		
+	movw %ecx, %es		
 	# Call trap(tf), where tf=%esp
 	pushl %esp		
 	call trap		
