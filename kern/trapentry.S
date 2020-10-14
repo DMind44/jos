@@ -42,11 +42,6 @@
 	jmp _alltraps
 
 .text
-
-/*
- * Lab 3: Your code here for generating entry points for the different traps.
- */
- 
 	TRAPHANDLER_NOEC(DIVIDE_ERROR, T_DIVIDE)
 	TRAPHANDLER_NOEC(DEBUG, T_DEBUG)
 	TRAPHANDLER_NOEC(NON_MASKABLE_INTERRUPT, T_NMI)
@@ -72,11 +67,11 @@ _alltraps:
 	# Build trap frame.
 	pushl %ds		
 	pushl %es		
-	pushal			
+	pushal
 	# Set up data segment
-	movw $(GD_KD), %ax	
-	movw %ax, %ds		
-	movw %ax, %es		
+	movw $(GD_KD), %ecx	
+	movw %ecx, %ds		
+	movw %ecx, %es		
 	# Call trap(tf), where tf=%esp
 	pushl %esp		
 	call trap		
