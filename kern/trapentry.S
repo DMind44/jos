@@ -42,14 +42,35 @@
 	jmp _alltraps
 
 .text
+	TRAPHANDLER_NOEC(DIVIDE_ERROR, T_DIVIDE)
+	TRAPHANDLER_NOEC(DEBUG, T_DEBUG)
+	TRAPHANDLER_NOEC(NON_MASKABLE_INTERRUPT, T_NMI)
+	TRAPHANDLER_NOEC(BREAKPOINT, T_BRKPT)
+	TRAPHANDLER_NOEC(OVERFLOW, T_OFLOW)
+	TRAPHANDLER_NOEC(BOUND_RANGE_EXCEEDED, T_BOUND)
+	TRAPHANDLER_NOEC(INVALID_OPCODE, T_ILLOP)
+	TRAPHANDLER_NOEC(DEVICE_NOT_AVAILABLE, T_DEVICE)
+	TRAPHANDLER(DOUBLE_FAULT, T_DBLFLT)
+	TRAPHANDLER(INVALID_TSS, T_TSS)
+	TRAPHANDLER(SEGMENT_NOT_PRESENT, T_SEGNP)
+	TRAPHANDLER(STACK_FAULT, T_STACK)
+	TRAPHANDLER(GENERAL_PROTECTION, T_GPFLT)
+	TRAPHANDLER(PAGE_FAULT, T_PGFLT)
+	TRAPHANDLER_NOEC(X87_FPU_FLOATINGPOINT_ERROR, T_FPERR)
+	TRAPHANDLER(ALIGNMENT_CHECK, T_ALIGN)
+	TRAPHANDLER_NOEC(MACHINE_CHECK, T_MCHK)
+	TRAPHANDLER_NOEC(SIMD_FLOATING_POINT_EXCEPTION, T_SIMDERR)
 
-/*
- * Lab 3: Your code here for generating entry points for the different traps.
- */
-
-
-
-/*
- * Lab 3: Your code here for _alltraps
- */
-
+	//push values to make the stack look like a struct Trapframe
+_alltraps:
+	# Build trap frame.
+	pushl %ds		
+	pushl %es		
+	pushal
+	# Set up data segment
+	movw $(GD_KD), %ecx	
+	movw %ecx, %ds		
+	movw %ecx, %es		
+	# Call trap(tf), where tf=%esp
+	pushl %esp		
+	call trap		
