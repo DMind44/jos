@@ -71,7 +71,49 @@ trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
+
 	// LAB 4: Your code here.
+
+
+	void DIVIDE_ERROR();
+	void DEBUG();
+	void NON_MASKABLE_INTERRUPT();
+	void BREAKPOINT ();
+	void OVERFLOW ();
+	void BOUND_RANGE_EXCEEDED();
+	void INVALID_OPCODE ();
+	void DEVICE_NOT_AVAILABLE ();
+	void DOUBLE_FAULT();
+	void INVALID_TSS();
+	void SEGMENT_NOT_PRESENT();
+	void STACK_FAULT();
+	void GENERAL_PROTECTION();
+	void PAGE_FAULT();
+	void X87_FPU_FLOATINGPOINT_ERROR();
+	void ALIGNMENT_CHECK();
+	void MACHINE_CHECK();
+	void SIMD_FLOATING_POINT_EXCEPTION();
+	void SYSTEM_CALL();
+	
+	SETGATE(idt[0], 1, GD_KT, &DIVIDE_ERROR, 0);
+	SETGATE(idt[1], 1, GD_KT, &DEBUG, 3);
+	SETGATE(idt[2], 0, GD_KT, &NON_MASKABLE_INTERRUPT, 0);
+	SETGATE(idt[3], 1, GD_KT, &BREAKPOINT, 3);
+	SETGATE(idt[4], 1, GD_KT, &OVERFLOW, 0);
+	SETGATE(idt[5], 1, GD_KT, &BOUND_RANGE_EXCEEDED, 0);
+	SETGATE(idt[6], 1, GD_KT, &INVALID_OPCODE, 0);
+	SETGATE(idt[7], 1, GD_KT, &DEVICE_NOT_AVAILABLE, 0);
+	SETGATE(idt[8], 1, GD_KT, &DOUBLE_FAULT, 0);
+	SETGATE(idt[10], 1, GD_KT, &INVALID_TSS, 0);
+	SETGATE(idt[11], 1, GD_KT, &SEGMENT_NOT_PRESENT, 0);
+	SETGATE(idt[12], 1, GD_KT, &STACK_FAULT, 0);
+	SETGATE(idt[13], 1, GD_KT, &GENERAL_PROTECTION, 0);
+	SETGATE(idt[14], 1, GD_KT, &PAGE_FAULT, 0);
+	SETGATE(idt[16], 1, GD_KT, &X87_FPU_FLOATINGPOINT_ERROR, 0);
+	SETGATE(idt[17], 1, GD_KT, &ALIGNMENT_CHECK, 0);
+	SETGATE(idt[18], 1, GD_KT, &MACHINE_CHECK, 0);
+	SETGATE(idt[19], 1, GD_KT, &SIMD_FLOATING_POINT_EXCEPTION, 0);
+	SETGATE(idt[48], 0, GD_KT, &SYSTEM_CALL, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -176,29 +218,42 @@ static void
 trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
-	// LAB 3: Your code here.
+	switch(tf->tf_trapno) {
+	case T_PGFLT:
+		page_fault_handler(tf);
+		break;
 
-	// Handle spurious interrupts
-	// The hardware sometimes raises these because of noise on the
-	// IRQ line or other reasons. We don't care.
-	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SPURIOUS) {
+	case T_BRKPT:
+		monitor(tf);
+		break;
+
+	case T_SYSCALL: {
+		struct PushRegs * regs = &tf->tf_regs;
+		regs->reg_eax = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, 
+							regs->reg_ebx, regs->reg_edi, regs->reg_esi);
+		break;
+	}
+	case IRQ_OFFSET + IRQ_SPURIOUS:
+		// Handle spurious interrupts
+		// The hardware sometimes raises these because of noise on the
+		// IRQ line or other reasons. We don't care.
 		cprintf("Spurious interrupt on irq 7\n");
 		print_trapframe(tf);
 		return;
-	}
-
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 7: Your code here.
-
-	// Unexpected trap: The user process or the kernel has a bug.
-	print_trapframe(tf);
-	if (tf->tf_cs == GD_KT)
-		panic("unhandled trap in kernel");
-	else {
-		env_destroy(curenv);
-		return;
+	default:
+		// Unexpected trap: The user process or the kernel has a bug.
+		print_trapframe(tf);
+		if (tf->tf_cs == GD_KT)
+			panic("unhandled trap in kernel");
+		else {
+			env_destroy(curenv);
+			return;
+		}
 	}
+
 }
 
 void
@@ -271,10 +326,14 @@ page_fault_handler(struct Trapframe *tf)
 
 	// Handle kernel-mode page faults.
 
-	// LAB 3: Your code here.
+	// check low bits of tf_cs
+	if ((tf->tf_cs & 3) == 0) {
+		panic("Kernel Mode Page Fault");
+	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
+<<<<<<< HEAD
 
 	// Call the environment's page fault upcall, if one exists.  Set up a
 	// page fault stack frame on the user exception stack (below
@@ -307,6 +366,8 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 5: Your code here.
 
+=======
+>>>>>>> lab4
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
