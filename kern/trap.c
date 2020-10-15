@@ -185,7 +185,6 @@ static void
 trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
-	// LAB 4: Your code here.
 	switch(tf->tf_trapno) {
 	case T_PGFLT:
 		page_fault_handler(tf);
@@ -194,26 +193,23 @@ trap_dispatch(struct Trapframe *tf)
 	case T_BRKPT:
 		monitor(tf);
 		break;
-		// add case for system calls
-		// from the lab instructions
-		// syscallno is in eax
-		// 5 arguments are in edx, ecx, ebx, edi, esi
-		// how do we arrange for the return value to be passed back through eax
+
 	case T_SYSCALL: {
 		struct PushRegs * regs = &tf->tf_regs;
-		regs->reg_eax = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, regs->reg_ebx,
-				regs->reg_edi, regs->reg_esi);
+		regs->reg_eax = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, 
+							regs->reg_ebx, regs->reg_edi, regs->reg_esi);
 		break;
 	}
+
 	default:
-	// Unexpected trap: The user process or the kernel has a bug.
-	print_trapframe(tf);
-	if (tf->tf_cs == GD_KT)
-		panic("unhandled trap in kernel");
-	else {
-		env_destroy(curenv);
-		return;
-	}
+		// Unexpected trap: The user process or the kernel has a bug.
+		print_trapframe(tf);
+		if (tf->tf_cs == GD_KT)
+			panic("unhandled trap in kernel");
+		else {
+			env_destroy(curenv);
+			return;
+		}
 
 	}
 

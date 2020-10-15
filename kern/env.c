@@ -475,8 +475,8 @@ env_run(struct Env *e)
 	//	   registers and drop into user mode in the
 	//	   environment.
 
-	if ((curenv != e && curenv != NULL) 
-			&& (curenv->env_status == ENV_RUNNING)) {
+	if (curenv != e && curenv != NULL 
+			&& curenv->env_status == ENV_RUNNING) {
 			curenv->env_status = ENV_RUNNABLE;
 	}
 	curenv = e;
