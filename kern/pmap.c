@@ -272,15 +272,12 @@ mem_init_mp(void)
 void
 page_init(void)
 {
-<<<<<<< HEAD
 	// LAB 5:
 	// Change your code to mark the physical page at MPENTRY_PADDR
 	// as in use
 
 	// The example code here marks all physical pages as free.
 	// However this is not truly the case.  What memory is free?
-=======
->>>>>>> lab4
 	//  1) Mark physical page 0 as in use.
 	//     This way we preserve the real-mode IDT and BIOS structures
 	//     in case we ever need them.  (Currently we don't, but...)
@@ -297,6 +294,10 @@ page_init(void)
 	pages[0].pp_ref = 1;
 	// the rest of base memory is free
 	for (i = 1; i < npages; i++) {
+		if (page2pa(&pages[i]) == MPENTRY_PADDR) {
+			pages[i].pp_ref = 1;
+			continue;
+		}
 	    if (page2pa(&pages[i]) < (IOPHYSMEM)) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
@@ -548,11 +549,11 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Be sure to round size up to a multiple of PGSIZE and to
 	// handle if this reservation would overflow MMIOLIM (it's
 	// okay to simply panic if this happens).
-	//
-	// Hint: The staff solution uses boot_map_region.
-	//
-	// Your code here:
-	panic("mmio_map_region not implemented");
+	if (base + size >= MMIOLIM) {
+		panic("Overflowed MMIOLIM");
+	}
+	boot_map_region(kern_pgdir, base, ROUNDUP(size, PGSIZE), pa, PTE_PCD|PTE_PWT|PTE_W);
+	return (void *) base;
 }
 
 static uintptr_t user_mem_check_addr;
