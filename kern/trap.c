@@ -166,7 +166,7 @@ trap_init_percpu(void)
 
 	// Load the TSS selector (like other segment selectors, the
 	// bottom three bits are special; we leave them 0)
-	ltr(GD_TSS0 + thiscpu_num);
+	ltr(gdt[thiscpu_num].sd_db); // Again not sure why this works. Is it because sd_db is either the 16-bit segment or the 32-bit segment? 
 
 	// Load the IDT
 	lidt(&idt_pd);
