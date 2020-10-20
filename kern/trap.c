@@ -282,6 +282,7 @@ trap(struct Trapframe *tf)
 	assert(!(read_eflags() & FL_IF));
 
 	if ((tf->tf_cs & 3) == 3) {
+		lock_kernel();
 		// Trapped from user mode.
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
