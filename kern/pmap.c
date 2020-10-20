@@ -198,6 +198,7 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, 
 			PADDR(bootstack), PTE_W | PTE_P);
+
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -254,6 +255,12 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 5: Your code here:
+	size_t i;
+	for (i = 0; i < NCPU; i++) {
+		uintptr_t kstacktop_i = KSTACKTOP -  KSTKSIZE - (i*(KSTKGAP+KSTKSIZE));
+		boot_map_region(kern_pgdir, kstacktop_i, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
+	}
+
 
 }
 
@@ -294,10 +301,10 @@ page_init(void)
 	pages[0].pp_ref = 1;
 	// the rest of base memory is free
 	for (i = 1; i < npages; i++) {
-		if (page2pa(&pages[i]) == MPENTRY_PADDR) {
-			pages[i].pp_ref = 1;
-			continue;
-		}
+	    if (page2pa(&pages[i]) == MPENTRY_PADDR) {
+		pages[i].pp_ref = 1;
+		continue;
+	    }
 	    if (page2pa(&pages[i]) < (IOPHYSMEM)) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
@@ -533,8 +540,10 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// beginning of the MMIO region.  Because this is static, its
 	// value will be preserved between calls to mmio_map_region
 	// (just like nextfree in boot_alloc).
-	static uintptr_t base = MMIOBASE;
-
+	static uintptr_t base;
+	if (!base) {
+		base = MMIOBASE;
+	}
 	// Reserve size bytes of virtual memory starting at base and
 	// map physical pages [pa,pa+size) to virtual addresses
 	// [base,base+size).  Since this is device memory and not
@@ -549,11 +558,15 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Be sure to round size up to a multiple of PGSIZE and to
 	// handle if this reservation would overflow MMIOLIM (it's
 	// okay to simply panic if this happens).
-	if (base + size >= MMIOLIM) {
+	if (ROUNDUP(base + size, PGSIZE) >= MMIOLIM) {
 		panic("Overflowed MMIOLIM");
 	}
-	boot_map_region(kern_pgdir, base, ROUNDUP(size, PGSIZE), pa, PTE_PCD|PTE_PWT|PTE_W);
-	return (void *) base;
+	boot_map_region(kern_pgdir, base, size, pa, PTE_PCD|PTE_PWT|PTE_W);
+	// Update base for the next region.
+	uintptr_t oldbase = base;
+	base += ROUNDUP(size, PGSIZE);
+	// But we still want to return the base of the region just allocated.
+	return (void *) oldbase;
 }
 
 static uintptr_t user_mem_check_addr;
@@ -789,8 +802,12 @@ check_kern_pgdir(void)
 		for (i = 0; i < KSTKSIZE; i += PGSIZE)
 			assert(check_va2pa(pgdir, base + KSTKGAP + i)
 				== PADDR(percpu_kstacks[n]) + i);
-		for (i = 0; i < KSTKGAP; i += PGSIZE)
+		for (i = 0; i < KSTKGAP; i += PGSIZE) {
+			cprintf("checkva2pa(pgdir, base+i) %x \n", check_va2pa(pgdir, base + i));
+			cprintf("~0 %x \n", ~0);
+			cprintf("i : %x \n", i);
 			assert(check_va2pa(pgdir, base + i) == ~0);
+		}
 	}
 
 	// check PDE permissions
