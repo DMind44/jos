@@ -149,10 +149,10 @@ trap_init_percpu(void)
 	//
 	// LAB 5: Your code here:
 	uint8_t thiscpu_num = thiscpu->cpu_id;
-	struct Taskstate thiscpu_ts = thiscpu->cpu_ts;
-	thiscpu_ts.ts_esp0 = KSTACKTOP - (thiscpu_num)*(KSTKSIZE+KSTKGAP);
-	thiscpu_ts.ts_ss0 = GD_KD;
-	thiscpu_ts.ts_iomb = sizeof(struct Taskstate);
+	struct Taskstate * thiscpu_ts = &thiscpu->cpu_ts;
+	thiscpu_ts->ts_esp0 = KSTACKTOP - (thiscpu_num)*(KSTKSIZE+KSTKGAP);
+	thiscpu_ts->ts_ss0 = GD_KD;
+	thiscpu_ts->ts_iomb = sizeof(struct Taskstate);
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 /*	ts.ts_esp0 = KSTACKTOP;
@@ -160,13 +160,13 @@ trap_init_percpu(void)
 	ts.ts_iomb = sizeof(struct Taskstate); */
 
 	// Initialize the TSS slot of the gdt.
-	gdt[(GD_TSS0 >> 3) + thiscpu_num] = SEG16(STS_T32A, (uint32_t) (&thiscpu_ts),
+	gdt[(GD_TSS0 >> 3) + thiscpu_num] = SEG16(STS_T32A, (uint32_t) (thiscpu_ts),
 					sizeof(struct Taskstate) - 1, 0);
 	gdt[(GD_TSS0 >> 3) + thiscpu_num].sd_s = 0;
 
 	// Load the TSS selector (like other segment selectors, the
 	// bottom three bits are special; we leave them 0)
-	ltr(gdt[thiscpu_num].sd_db); // Again not sure why this works. Is it because sd_db is either the 16-bit segment or the 32-bit segment? 
+	ltr(GD_TSS0 + sizeof(struct Segdesc) * thiscpu_num); // Again not sure why this works. Is it because sd_db is either the 16-bit segment or the 32-bit segment? 
 
 	// Load the IDT
 	lidt(&idt_pd);
@@ -275,14 +275,14 @@ trap(struct Trapframe *tf)
 	// Re-acqurie the big kernel lock if we were halted in
 	// sched_yield()
 	if (xchg(&thiscpu->cpu_status, CPU_STARTED) == CPU_HALTED)
-		lock_kernel();
+	//	lock_kernel();
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
 	assert(!(read_eflags() & FL_IF));
 
 	if ((tf->tf_cs & 3) == 3) {
-		lock_kernel();
+	//	lock_kernel();
 		// Trapped from user mode.
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
