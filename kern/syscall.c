@@ -83,7 +83,14 @@ sys_exofork(void)
 	// will appear to return 0.
 
 	// LAB 5: Your code here.
-	panic("sys_exofork not implemented");
+        struct Env * new_env;
+	int alloc_result = env_alloc(&new_env, curenv->env_id); 
+	if (alloc_result < 0)
+		return alloc_result;
+	new_env->env_status = ENV_NOT_RUNNABLE;
+	new_env->env_tf->tf_regs = curenv->env_tf->tf_regs;
+	new_env->env_tf->tf_regs->reg_eax = 0;
+	return new_env->env_id;
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -103,7 +110,15 @@ sys_env_set_status(envid_t envid, int status)
 	// envid's status.
 
 	// LAB 5: Your code here.
-	panic("sys_env_set_status not implemented");
+	struct Env * env;
+	int envid_result = envid2env(envid, &env, 1);
+	if (envid_result < 0)
+		return envid_result;
+	if (status != ENV_RUNNABLE && status != ENV_NOT_RUNNABLE)
+		return -E_INVAL
+	env.env_status = status;
+	return 0;
+
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -226,7 +241,7 @@ sys_page_unmap(envid_t envid, void *va)
 //	-E_BAD_ENV if environment envid doesn't currently exist.
 //		(No need to check permissions.)
 //	-E_IPC_NOT_RECV if envid is not currently blocked in sys_ipc_recv,
-//		or another environment managed to send first.
+//		or anothepr environment managed to send first.
 //	-E_INVAL if srcva < UTOP but srcva is not page-aligned.
 //	-E_INVAL if srcva < UTOP and perm is inappropriate
 //		(see sys_page_alloc).
@@ -280,6 +295,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return (int32_t) sys_getenvid();
 	case SYS_env_destroy:
 		return sys_env_destroy((envid_t) a1);
+	case SYS_yield:
+		sys_yield();
+		return 0;
 	default:
 		return -E_INVAL;
 	}

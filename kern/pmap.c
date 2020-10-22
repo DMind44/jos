@@ -802,12 +802,9 @@ check_kern_pgdir(void)
 		for (i = 0; i < KSTKSIZE; i += PGSIZE)
 			assert(check_va2pa(pgdir, base + KSTKGAP + i)
 				== PADDR(percpu_kstacks[n]) + i);
-		for (i = 0; i < KSTKGAP; i += PGSIZE) {
-			cprintf("checkva2pa(pgdir, base+i) %x \n", check_va2pa(pgdir, base + i));
-			cprintf("~0 %x \n", ~0);
-			cprintf("i : %x \n", i);
+		for (i = 0; i < KSTKGAP; i += PGSIZE)
 			assert(check_va2pa(pgdir, base + i) == ~0);
-		}
+
 	}
 
 	// check PDE permissions

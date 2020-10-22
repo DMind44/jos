@@ -166,7 +166,7 @@ trap_init_percpu(void)
 
 	// Load the TSS selector (like other segment selectors, the
 	// bottom three bits are special; we leave them 0)
-	ltr(GD_TSS0 + sizeof(struct Segdesc) * thiscpu_num); // Again not sure why this works. Is it because sd_db is either the 16-bit segment or the 32-bit segment? 
+	ltr(GD_TSS0 + sizeof(struct Segdesc) * thiscpu_num);
 
 	// Load the IDT
 	lidt(&idt_pd);
@@ -275,14 +275,14 @@ trap(struct Trapframe *tf)
 	// Re-acqurie the big kernel lock if we were halted in
 	// sched_yield()
 	if (xchg(&thiscpu->cpu_status, CPU_STARTED) == CPU_HALTED)
-	//	lock_kernel();
+		lock_kernel();
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
 	assert(!(read_eflags() & FL_IF));
 
 	if ((tf->tf_cs & 3) == 3) {
-	//	lock_kernel();
+		lock_kernel();
 		// Trapped from user mode.
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
