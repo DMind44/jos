@@ -267,10 +267,6 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 static void
 region_alloc(struct Env *e, void *va, size_t len)
 {
-	// Hint: It is easier to use region_alloc if the caller can pass
-	//   'va' and 'len' values that are not page-aligned.
-	//   You should round va down, and round (va + len) up.
-	//   (Watch out for corner-cases!)
 	for (void * roundVa = ROUNDDOWN(va, PGSIZE); 
 		roundVa < ROUNDUP(va+len, PGSIZE); roundVa++) {
 			struct PageInfo * page = page_alloc(0);
@@ -479,20 +475,14 @@ env_run(struct Env *e)
 	//	   registers and drop into user mode in the
 	//	   environment.
 
-	// Hint: This function loads the new environment's state from
-	//	e->env_tf.  Go back through the code you wrote above
-	//	and make sure you have set the relevant parts of
-	//	e->env_tf to sensible values.
-
-	if (curenv != e && curenv != NULL) {
-		if (curenv->env_status == ENV_RUNNING)
+	if (curenv != e && curenv != NULL 
+			&& curenv->env_status == ENV_RUNNING) {
 			curenv->env_status = ENV_RUNNABLE;
 	}
 	curenv = e;
 	curenv->env_status = ENV_RUNNING;
 	curenv->env_runs++;
 	lcr3(PADDR(e->env_pgdir));
-	cprintf("env tf %x\n", &e->env_tf);
 	env_pop_tf(&e->env_tf);
 }
 

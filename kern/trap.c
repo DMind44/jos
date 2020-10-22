@@ -86,6 +86,7 @@ trap_init(void)
 	void ALIGNMENT_CHECK();
 	void MACHINE_CHECK();
 	void SIMD_FLOATING_POINT_EXCEPTION();
+	void SYSTEM_CALL();
 	
 	SETGATE(idt[0], 1, GD_KT, &DIVIDE_ERROR, 0);
 	SETGATE(idt[1], 1, GD_KT, &DEBUG, 3);
@@ -105,7 +106,7 @@ trap_init(void)
 	SETGATE(idt[17], 1, GD_KT, &ALIGNMENT_CHECK, 0);
 	SETGATE(idt[18], 1, GD_KT, &MACHINE_CHECK, 0);
 	SETGATE(idt[19], 1, GD_KT, &SIMD_FLOATING_POINT_EXCEPTION, 0);
-	
+	SETGATE(idt[48], 0, GD_KT, &SYSTEM_CALL, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -184,16 +185,34 @@ static void
 trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
-	// LAB 4: Your code here.
+	switch(tf->tf_trapno) {
+	case T_PGFLT:
+		page_fault_handler(tf);
+		break;
 
-	// Unexpected trap: The user process or the kernel has a bug.
-	print_trapframe(tf);
-	if (tf->tf_cs == GD_KT)
-		panic("unhandled trap in kernel");
-	else {
-		env_destroy(curenv);
-		return;
+	case T_BRKPT:
+		monitor(tf);
+		break;
+
+	case T_SYSCALL: {
+		struct PushRegs * regs = &tf->tf_regs;
+		regs->reg_eax = syscall(regs->reg_eax, regs->reg_edx, regs->reg_ecx, 
+							regs->reg_ebx, regs->reg_edi, regs->reg_esi);
+		break;
 	}
+
+	default:
+		// Unexpected trap: The user process or the kernel has a bug.
+		print_trapframe(tf);
+		if (tf->tf_cs == GD_KT)
+			panic("unhandled trap in kernel");
+		else {
+			env_destroy(curenv);
+			return;
+		}
+
+	}
+
 }
 
 void
@@ -245,11 +264,13 @@ page_fault_handler(struct Trapframe *tf)
 
 	// Handle kernel-mode page faults.
 
-	// LAB 4: Your code here.
+	// check low bits of tf_cs
+	if ((tf->tf_cs & 3) == 0) {
+		panic("Kernel Mode Page Fault");
+	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
-
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
