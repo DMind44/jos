@@ -408,7 +408,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		page->pp_ref++;
 		pte = (pte_t *) page2kva(page);
 		*pde = PADDR(pte) | PTE_P | PTE_W | PTE_U;
-	}
+    }
 	return &(pte[PTX(va)]);
 } 
 //
