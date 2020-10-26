@@ -279,23 +279,6 @@ mem_init_mp(void)
 void
 page_init(void)
 {
-	// LAB 5:
-	// Change your code to mark the physical page at MPENTRY_PADDR
-	// as in use
-
-	// The example code here marks all physical pages as free.
-	// However this is not truly the case.  What memory is free?
-	//  1) Mark physical page 0 as in use.
-	//     This way we preserve the real-mode IDT and BIOS structures
-	//     in case we ever need them.  (Currently we don't, but...)
-	//  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
-	//     is free.
-	//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
-	//     never be allocated.
-	//  4) Then extended memory [EXTPHYSMEM, ...).
-	//     Some of it is in use, some is free. Where is the kernel
-	//     in physical memory?  Which pages are already in use for
-	//     page tables and other data structures?	
 	size_t i;
 	// mark physical page 0 as in use
 	pages[0].pp_ref = 1;
