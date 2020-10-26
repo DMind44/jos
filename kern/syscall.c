@@ -221,7 +221,8 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	if(dstenvid_result < 0) {
 		return dstenvid_result;
 	}
-	if (srcva >= (void *)UTOP || dstva >= (void *)UTOP || ((int)srcva % PGSIZE) != 0 || ((int)dstva % PGSIZE) != 0) {
+	if (srcva >= (void *)UTOP || dstva >= (void *)UTOP ||
+	    ((int)srcva % PGSIZE) != 0 || ((int)dstva % PGSIZE) != 0) {
 		return -E_INVAL;
 	}
 	if (!(perm & (PTE_U | PTE_P))) {
