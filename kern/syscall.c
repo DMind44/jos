@@ -88,7 +88,7 @@ sys_exofork(void)
 	if (alloc_result < 0)
 		return alloc_result;
 	new_env->env_status = ENV_NOT_RUNNABLE;
-	new_env->env_tf.tf_regs = curenv->env_tf.tf_regs;
+	new_env->env_tf = curenv->env_tf;
 	new_env->env_tf.tf_regs.reg_eax = 0;
 	return new_env->env_id;
 }
@@ -237,10 +237,8 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	}
 	int insert_result = page_insert(dstenv->env_pgdir, srcpage, dstva, perm);
 	if(insert_result != 0) {
-		cprintf("insert_result %x \n", insert_result);
 		return -E_NO_MEM;
 	}
-	cprintf("insert_result %x \n", insert_result);
 	return 0;
 }
 
