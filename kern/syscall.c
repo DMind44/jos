@@ -83,7 +83,7 @@ sys_exofork(void)
 	// will appear to return 0.
 
 	// LAB 5: Your code here.
-        struct Env * new_env;
+	struct Env * new_env;
 	int alloc_result = env_alloc(&new_env, curenv->env_id); 
 	if (alloc_result < 0)
 		return alloc_result;
