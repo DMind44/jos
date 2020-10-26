@@ -1,0 +1,12 @@
+1) We wouldn't be able to specify the privilege level of the interrupt or
+exception. For example, the breakpoint interrupt should have user access,
+while the page fault exception should be handled by the kernel.
+
+2) No, the kernel handles the general protection fault because a user program
+should not be able to directly invoke a kernel level vector such as page
+fault. The general protection fault is invoked by the kernel when a user
+program tries to access non user memory. 
+If the user could call vector 14, they could do many malicious things. They
+could slow the system down by repeatedly calling int 14. They could also
+inject the interrupt with a malicious error code, granting user access  to
+kernel only code.
