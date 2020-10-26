@@ -1,1 +1,21 @@
-1) 
+1) If we were to allow the linker to automatically choose the physical
+addresses of the symbols, it could potentially create different addresses in
+each processor.
+2) CPU 1 and 2 are concurrently running programs.
+CPU 1 has a system call, so it pushes some data to the kernel stack. During
+this call, CPU 2 makes a system call as well, so it pushes some data to the
+stack as well. CPU 2 writes over some return address that was put into the
+stack by CPU 1. Back to CPU 1, the system call is finished, and the return
+address is used. The kernel will then return to some arbitrary address,
+potentially running junk or even potentially malicious code.
+3) The lcr3 command switches the environment, which gives it a different user
+stack, but the kernel stack remains the same. This allows the address e to be
+addressed after the switch. On xv6, this would not work, as each environment
+has its own kernel space.
+4) We need to save the registers, so that the environment can start from the
+same point it was at during a switch, and we don't lose any important
+information in the registers, such as the stack pointer or the instruction pointer,
+along with data registers. This happens in trap() in trap.c, where the
+current trapframe is stored in the env_tf
+structure in the current environment's data. The trapframe is given to trap()
+by alltraps in trapentry.S
