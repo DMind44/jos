@@ -365,7 +365,41 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 5: Your code here.
+	if (curenv->env_pgfault_upcall) {
+		// set up a page fault stack frame on user exception stack
+		struct UTrapframe exception_stack;
+		exception_stack->uft_fault_va = fault_va;
+		exception_stack->utf_err = tf_err;
+		exception_stack->uft_regs = tf->tf_regs;
+		exception_stack->utf_eip = tf->tf_eip;
+		exception_stack->utf_eflags = tf->tf_eflags;
+		exception_stack->utf_esp = tf->tf_esp;
+		
+		if  (tf->tf_esp <= USTACKTOP && tf_tf_esp >= USTACKTOP-1) {
+			// push empty 32-bit word
+			tf->tf_esp -= 0x4;
+			*(long *) tf->tf_esp = 0x0;
+			// push UTrapframe
+			tf->tf_esp -= 0x4;
+			*(unint32_t *) tf->tf_esp = exception_stack->utf_esp;
+			tf->tf_esp -= 0x4;
+			*(uint32_t *) tf->tf_esp = exception_stack->utf_eflags;
+			tf->tf_esp -= 0x4;
+			*(uint32_t *) tf->tf_esp = exception_stack->utf_eip;
+			tf->tf_esp -= 0x4;
+			*(uint32_t *) tf->tf_esp = exception_stack->utf_regs->reg_eax;
+			tf->tf_esp -= 0x4;
+			*(uint32_t *) tf->tf_esp = exception_stack->utf_err;
+			tf->tf_esp -= 0x4;
+			*(uint32_t *) tf->tf_esp = exception_stack->utf_fault;
+		}
+		else {
+			// branch into curen->env_pgfault_upcall
 
+		}
+		curenv->env_tf.tf_eip = curenv->env_pgfault_upcall;
+		env_run(curenv);
+	}
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 		curenv->env_id, fault_va, tf->tf_eip);
