@@ -363,31 +363,31 @@ page_fault_handler(struct Trapframe *tf)
 	//   user_mem_assert() and env_run() are useful here.
 	//   To change what the user environment runs, modify 'curenv->env_tf'
 	//   (the 'tf' variable points at 'curenv->env_tf').
-
-	// LAB 5: Your code here.
+	
 	if (curenv->env_pgfault_upcall) {
+		user_mem_assert(curenv, curenv->env_pgfault_upcall, 0, 
 		// set up a page fault stack frame on user exception stack
 		struct UTrapframe exception_stack;
-		exception_stack->uft_fault_va = fault_va;
-		exception_stack->utf_err = tf_err;
-		exception_stack->uft_regs = tf->tf_regs;
-		exception_stack->utf_eip = tf->tf_eip;
-		exception_stack->utf_eflags = tf->tf_eflags;
-		exception_stack->utf_esp = tf->tf_esp;
+		exception_stack.utf_fault_va = fault_va;
+		exception_stack.utf_err = tf->tf_err;
+		exception_stack.utf_regs = tf->tf_regs;
+		exception_stack.utf_eip = tf->tf_eip;
+		exception_stack.utf_eflags = tf->tf_eflags;
+		exception_stack.utf_esp = tf->tf_esp;
 		
-		if  (tf->tf_esp >= (USTACKTOP - PGSIZE) && tf_tf_esp < USTACKTOP) {
+		if  (tf->tf_esp >= (USTACKTOP - PGSIZE) && tf->tf_esp < USTACKTOP) {
 			// push empty 32-bit word
 			tf->tf_esp -= 0x4;
 			*(long *) tf->tf_esp = 0x0;
 		}
 		else {
-			tf->tf_esp = exception_stack->utf_esp;	
+			tf->tf_esp = exception_stack.utf_esp;	
 		}
 			// push UTrapframe
-		tf->tf_esp -= sizeof(struct Utrapframe);
-		*(struct Utrapframe *) tf->tf_esp = exception_stack;
+		tf->tf_esp -= sizeof(struct UTrapframe);
+		*(struct UTrapframe *) tf->tf_esp = exception_stack;
 			
-		curenv->env_tf.tf_eip = curenv->env_pgfault_upcall;
+		curenv->env_tf.tf_eip = (uint32_t) curenv->env_pgfault_upcall;
 		env_run(curenv);
 	}
 
