@@ -20,7 +20,7 @@ sys_cputs(const char *s, size_t len)
 {
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
-	user_mem_assert(curenv, s, len,  PTE_P);
+	user_mem_assert(curenv, s, len,  PTE_U | PTE_P);
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -51,7 +51,6 @@ sys_env_destroy(envid_t envid)
 {
 	int r;
 	struct Env *e;
-	user_mem_assert(curenv, &envs[ENVX(envid)], sizeof(struct Env), PTE_U | PTE_W | PTE_P);
 	if ((r = envid2env(envid, &e, 1)) < 0)
 		return r;
 	if (e == curenv)
@@ -82,7 +81,6 @@ sys_exofork(void)
 	// from the current environment -- but tweaked so sys_exofork
 	// will appear to return 0.
 
-	// LAB 5: Your code here.
 	struct Env * new_env;
 	int alloc_result = env_alloc(&new_env, curenv->env_id); 
 	if (alloc_result < 0)
@@ -109,7 +107,6 @@ sys_env_set_status(envid_t envid, int status)
 	// check whether the current environment has permission to set
 	// envid's status.
 
-	// LAB 5: Your code here.
 	struct Env * env;
 	int envid_result = envid2env(envid, &env, 1);
 	if (envid_result < 0)
@@ -162,7 +159,6 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   If page_insert() fails, remember to free the page you
 	//   allocated!
 
-	// LAB 5: Your code here.
 	if (!envid)
 		return -E_BAD_ENV;
 	struct Env * env;
@@ -208,7 +204,6 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   Use the third argument to page_lookup() to
 	//   check the current permissions on the page.
 
-	// LAB 5: Your code here.
 	if(ENVX(srcenvid) >= NENV || ENVX(dstenvid) >= NENV)
 		return -E_BAD_ENV;
 	struct Env * srcenv;
@@ -255,7 +250,6 @@ sys_page_unmap(envid_t envid, void *va)
 {
 	// Hint: This function is a wrapper around page_remove().
 
-	// LAB 5: Your code here.
 	if (ENVX(envid) >= NENV)
 		return -E_BAD_ENV;
 	struct Env * env;
@@ -339,7 +333,6 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 {
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
-	// LAB 3: Your code here.
 
 	switch (syscallno) {
 	case SYS_cputs:
