@@ -365,7 +365,6 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 	
 	if (curenv->env_pgfault_upcall) {
-		user_mem_assert(curenv, curenv->env_pgfault_upcall, 0, 
 		// set up a page fault stack frame on user exception stack
 		struct UTrapframe exception_stack;
 		exception_stack.utf_fault_va = fault_va;
@@ -375,16 +374,17 @@ page_fault_handler(struct Trapframe *tf)
 		exception_stack.utf_eflags = tf->tf_eflags;
 		exception_stack.utf_esp = tf->tf_esp;
 		
-		if  (tf->tf_esp >= (USTACKTOP - PGSIZE) && tf->tf_esp < USTACKTOP) {
+		if  (tf->tf_esp >= (UXSTACKTOP - PGSIZE) && tf->tf_esp < UXSTACKTOP) {
 			// push empty 32-bit word
 			tf->tf_esp -= 0x4;
 			*(long *) tf->tf_esp = 0x0;
 		}
 		else {
-			tf->tf_esp = exception_stack.utf_esp;	
+			tf->tf_esp = UXSTACKTOP;	
 		}
 			// push UTrapframe
 		tf->tf_esp -= sizeof(struct UTrapframe);
+		user_mem_assert(curenv, (void *) UXSTACKTOP, PGSIZE, PTE_P | PTE_W);
 		*(struct UTrapframe *) tf->tf_esp = exception_stack;
 			
 		curenv->env_tf.tf_eip = (uint32_t) curenv->env_pgfault_upcall;
