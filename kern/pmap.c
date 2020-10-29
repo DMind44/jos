@@ -152,7 +152,6 @@ mem_init(void)
 	memset(pages, 0, npages*sizeof(struct PageInfo));
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
-	// LAB 3: Your code here.
 	envs = (struct Env *) boot_alloc(NENV*sizeof(struct Env));
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -183,7 +182,6 @@ mem_init(void)
 	// Permissions:
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
-	// LAB 3: Your code here.
 	boot_map_region(kern_pgdir, UENVS, NENV*sizeof(struct Env), 
 			PADDR(envs), PTE_U | PTE_P);
 	//////////////////////////////////////////////////////////////////////
@@ -254,7 +252,6 @@ mem_init_mp(void)
 	//             Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	//
-	// LAB 5: Your code here:
 	size_t i;
 	for (i = 0; i < NCPU; i++) {
 		uintptr_t kstacktop_i = KSTACKTOP -  KSTKSIZE - (i*(KSTKGAP+KSTKSIZE));
@@ -575,10 +572,10 @@ static uintptr_t user_mem_check_addr;
 int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
-	for (; ROUNDDOWN(va, PGSIZE) < ROUNDUP(va + len/PGSIZE, PGSIZE); va++) {
-		pte_t * pte = pgdir_walk(env->env_pgdir, va, 0);
-		if (!pte || ((*pte & perm) != perm)) {
-			user_mem_check_addr = (uint32_t) va;
+	for (const void* i = va; i < va + len; i = ROUNDDOWN(i+PGSIZE, PGSIZE)) {
+		pte_t * pte = pgdir_walk(env->env_pgdir, i, 0);
+		if (!pte || (*pte & perm) != perm) {
+			user_mem_check_addr = (uint32_t) i;
 			return -E_FAULT;
 		}
 	}
