@@ -67,7 +67,7 @@ _pgfault_upcall:
 	// LAB 6: Your code here.
 	movl 48(%esp), %eax // trap-time esp
 	subl $4, %eax 
-	movl %eaxp, 48(%esp)
+	movl %eax, 48(%esp)
 	movl 40(%esp), %edx // trap-time eip
 	movl %edx, (%eax) 
 	// Restore the trap-time registers.  After you do this, you
@@ -79,16 +79,18 @@ _pgfault_upcall:
 	movl 24(%esp), %ebx
 	movl 28(%esp), %edx
 	movl 32(%esp), %ecx
-	movl 36(%esp), %eax */ // we could just use popal here. It doesnt matter if we lose esp because we are done pushing and because we saved esp already.
+	movl 36(%esp), %eax */ // we could just use popal here. It doesnt matter if we lose esp because we are done pushing and because we saved esp already. Where did we save esp though?
 	popal
 	
 	// Restore eflags from the stack.  After you do this, you can
 	// no longer use arithmetic operations or anything else that
 	// modifies eflags.
 	// LAB 6: Your code here.
-
+	popfl
 	// Switch back to the adjusted trap-time stack.
 	// LAB 6: Your code here.
-
+	// ask about this in office hours
+	movl %eax, %esp
 	// Return to re-execute the instruction that faulted.
 	// LAB 6: Your code here.
+	ret
