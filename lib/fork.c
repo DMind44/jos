@@ -54,6 +54,10 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 
 	// LAB 5: Your code here.
+	// map virtual page pn into target envid at the same virtual address
+	// if page is writable or copy-on-write, the new mapping must be created copy-on-write
+	// then our mapping must be marked copy-on-write as well
+       	sys_page_map(curenv, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZZE), perm);
 	panic("duppage not implemented");
 	return 0;
 }
@@ -78,7 +82,45 @@ envid_t
 fork(void)
 {
 	// LAB 5: Your code here.
-	panic("fork not implemented");
+	// uvpt is the va of virtual page table
+	// uvpd is the va of current page directory
+	// In parent:
+	// set pgfault handler
+	set_pgfault_handler(pgfault);
+	// create child
+	envid_t envid;
+	envid = sys_exofork();
+	if (envid < 0) {
+		panic("sys_exofork failed: %e", envid);
+	}
+	// copy address space and page fault handler to the child
+	size_t i;
+	for (i = 0; i < (UVPT + PTSIZE)/PGSIZE; i++) {
+		if (uvpt[i] < UTOP) {
+			duppage(envid, uvpt[i]);
+		}
+/*		if (i == (UVPT + PTSIZE)/PGSIZE - 1) { // Takes care of copying page fault handler?
+			duppage(envid, uvpd[i]);
+			} */
+	}
+	int alloc_result = sys_page_alloc(envid, (void *) UXSTACKTOP - PGSIZE, PTE_W | PTE_P | PTE_U);
+	if (alloc_result < 0) {
+		panic("cannot allocate page for exception stack");
+	}
+	// mark the child as runnable and return child envid if in parent, 0 if in child and <0 on error
+	int set_status_result = sys_env_set_status(envid, ENV_RUNNABLE);
+	if (set_status_result < 0) {
+		return set_status_result;
+	}
+	if (envid == 0) {
+		//set page fualt handler
+		set_pgfault_handler(pgfault);
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+	else {
+		return envid;
+	}
 }
 
 // Challenge!

@@ -364,8 +364,6 @@ page_fault_handler(struct Trapframe *tf)
 	//   To change what the user environment runs, modify 'curenv->env_tf'
 	//   (the 'tf' variable points at 'curenv->env_tf').
 	struct Env *env = curenv;
-	cprintf("current env: %x \n", env);
-	cprintf("current env pgfault upcall: %x \n", env->env_pgfault_upcall);
 	if (env->env_pgfault_upcall) {
 		// set up a page fault stack frame on user exception stack
 		struct UTrapframe exception_stack;
