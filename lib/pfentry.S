@@ -80,17 +80,19 @@ _pgfault_upcall:
 	movl 28(%esp), %edx
 	movl 32(%esp), %ecx
 	movl 36(%esp), %eax */ // we could just use popal here. It doesnt matter if we lose esp because we are done pushing and because we saved esp already. Where did we save esp though?
+	addl $8, %esp // skipping utf_fault_va and utf_err
 	popal
 	
 	// Restore eflags from the stack.  After you do this, you can
 	// no longer use arithmetic operations or anything else that
 	// modifies eflags.
 	// LAB 6: Your code here.
+	addl $4, %esp // skipping trap-time eip
 	popfl
 	// Switch back to the adjusted trap-time stack.
 	// LAB 6: Your code here.
 	// ask about this in office hours
-	movl %eax, %esp
+	popl %esp
 	// Return to re-execute the instruction that faulted.
 	// LAB 6: Your code here.
 	ret

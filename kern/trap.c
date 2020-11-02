@@ -363,8 +363,10 @@ page_fault_handler(struct Trapframe *tf)
 	//   user_mem_assert() and env_run() are useful here.
 	//   To change what the user environment runs, modify 'curenv->env_tf'
 	//   (the 'tf' variable points at 'curenv->env_tf').
-	
-	if (curenv->env_pgfault_upcall) {
+	struct Env *env = curenv;
+	cprintf("current env: %x \n", env);
+	cprintf("current env pgfault upcall: %x \n", env->env_pgfault_upcall);
+	if (env->env_pgfault_upcall) {
 		// set up a page fault stack frame on user exception stack
 		struct UTrapframe exception_stack;
 		exception_stack.utf_fault_va = fault_va;
@@ -377,14 +379,15 @@ page_fault_handler(struct Trapframe *tf)
 		if  (tf->tf_esp >= (UXSTACKTOP - PGSIZE) && tf->tf_esp < UXSTACKTOP) {
 			// push empty 32-bit word
 			tf->tf_esp -= 0x4;
-			*(long *) tf->tf_esp = 0x0;
+			// check to make sure you have permisions to do this / use user mem assert or dont bother writing 
+//			*(long *) tf->tf_esp = 0x0;
 		}
 		else {
 			tf->tf_esp = UXSTACKTOP;	
 		}
 			// push UTrapframe
 		tf->tf_esp -= sizeof(struct UTrapframe);
-		user_mem_assert(curenv, (void *) UXSTACKTOP, PGSIZE, PTE_P | PTE_W);
+		user_mem_assert(curenv, (void *) UXSTACKTOP-PGSIZE, PGSIZE, PTE_P | PTE_W);
 		*(struct UTrapframe *) tf->tf_esp = exception_stack;
 			
 		curenv->env_tf.tf_eip = (uint32_t) curenv->env_pgfault_upcall;

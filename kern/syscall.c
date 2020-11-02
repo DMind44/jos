@@ -162,13 +162,12 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   parameters for correctness.
 	//   If page_insert() fails, remember to free the page you
 	//   allocated!
-
-	if (!envid)
-		return -E_BAD_ENV;
 	struct Env * env;
-	int envid_result = envid2env(envid, &env, 1);
-	if (envid_result < 0)
-		return envid_result;
+	if (ENVX(envid) >= NENV || (envid2env(envid, &env, 1) < 0))
+		return -E_BAD_ENV;
+//	int envid_result = envid2env(envid, &env, 1);
+//	if (envid_result < 0)
+//		return envid_result;
 	if (va >= (void *)UTOP ||(int) va % PGSIZE != 0)
 		return -E_INVAL;
 	if (!(perm & (PTE_U | PTE_P)))
@@ -361,6 +360,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_page_map((envid_t) a1, (void *)a2, (envid_t) a3, (void *)a4, a5);
 	case SYS_page_unmap:
 		return sys_page_unmap((envid_t) a1, (void *)a2);
+	case SYS_env_set_pgfault_upcall:
+		return sys_env_set_pgfault_upcall((envid_t) a1, (void *) a2);
 	default:
 		return -E_INVAL;
 	}
