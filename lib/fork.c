@@ -25,7 +25,9 @@ pgfault(struct UTrapframe *utf)
 	//   (see <inc/memlayout.h>).
 
 	// LAB 5: Your code here.
-
+	if ( ( ( (int)addr & PTE_W) == 0) && ( ((int)addr & PTE_COW) == 0) ) {
+		panic("faulting access is neither a write nor a copy-on-write page");
+	}
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
 	// page to the old page's address.
@@ -33,8 +35,15 @@ pgfault(struct UTrapframe *utf)
 	//   You should make three system calls.
 
 	// LAB 5: Your code here.
-
-	panic("pgfault not implemented");
+	envid_t envid = sys_getenvid();
+	if (sys_page_alloc(envid, PFTEMP, PTE_P | PTE_U | PTE_COW) < 0) {
+		panic("sys_page_alloc failed");
+	}
+	memmove(PFTEMP, addr, PGSIZE); 
+	int pgmap_result = sys_page_map(envid, addr, envid, PFTEMP, PTE_P | PTE_U | PTE_COW);
+	if (pgmap_result < 0) {
+		panic("sys_page_map failed");
+	}
 }
 
 //
@@ -57,9 +66,19 @@ duppage(envid_t envid, unsigned pn)
 	// map virtual page pn into target envid at the same virtual address
 	// if page is writable or copy-on-write, the new mapping must be created copy-on-write
 	// then our mapping must be marked copy-on-write as well
-       	sys_page_map(curenv, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZZE), perm);
-	panic("duppage not implemented");
-	return 0;
+	// how do I check the perms of a page?
+	int perm = PTE_P | PTE_U;
+	envid_t cur_envid = sys_getenvid(); //thisenv OR 
+	if (uvpt[pn] & PTE_W || uvpt[pn] & PTE_COW) {
+		perm = perm | PTE_COW;
+	       	r = sys_page_map(cur_envid, (void *)pn*PGSIZE, envid, (void *)(pn*PGSIZE), perm); //find macro for pn*PGSIZE
+		// how do I mark the mapping copy-on-write?
+	       	r = sys_page_map(cur_envid, (void *)pn*PGSIZE, cur_envid, (void *)(pn*PGSIZE), perm);
+	}
+	else {
+	       	r = sys_page_map(cur_envid, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), perm);
+	}
+	return r;
 }
 
 //
@@ -90,18 +109,22 @@ fork(void)
 	// create child
 	envid_t envid;
 	envid = sys_exofork();
+	if (envid == 0) {
+		//set page fualt handler
+		set_pgfault_handler(pgfault);
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+
 	if (envid < 0) {
 		panic("sys_exofork failed: %e", envid);
 	}
 	// copy address space and page fault handler to the child
-	size_t i;
-	for (i = 0; i < (UVPT + PTSIZE)/PGSIZE; i++) {
-		if (uvpt[i] < UTOP) {
-			duppage(envid, uvpt[i]);
+	size_t pgnum;
+	for (pgnum = 0; pgnum < PGNUM(UTOP); i++) {
+		if (uvpt[pgnum]) { // replace with checking for present bit
+ 			duppage(envid, pgnum);
 		}
-/*		if (i == (UVPT + PTSIZE)/PGSIZE - 1) { // Takes care of copying page fault handler?
-			duppage(envid, uvpd[i]);
-			} */
 	}
 	int alloc_result = sys_page_alloc(envid, (void *) UXSTACKTOP - PGSIZE, PTE_W | PTE_P | PTE_U);
 	if (alloc_result < 0) {
@@ -112,15 +135,8 @@ fork(void)
 	if (set_status_result < 0) {
 		return set_status_result;
 	}
-	if (envid == 0) {
-		//set page fualt handler
-		set_pgfault_handler(pgfault);
-		thisenv = &envs[ENVX(sys_getenvid())];
-		return 0;
-	}
-	else {
-		return envid;
-	}
+	return envid;
+	
 }
 
 // Challenge!
