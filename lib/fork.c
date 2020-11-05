@@ -26,7 +26,7 @@ pgfault(struct UTrapframe *utf)
 	//   (see <inc/memlayout.h>).
 
 	// LAB 5: Your code here.
-	cprintf("pte for addr: %x. \n", uvpt[PGNUM(addr)]);
+	cprintf("pte for faulting addr %x: %x. \n", addr, uvpt[PGNUM(addr)]);
 	cprintf("pgaddr for addr: %x. \n", PGADDR(PDX(addr), PTX(addr), PGOFF(addr)));
 	cprintf("addr and PTE_COW: %x. \n", ((pte_t)addr&PTE_COW));
 	cprintf("err and error write: %x. \n", (err & FEC_WR));
@@ -144,12 +144,12 @@ fork(void)
 //	for (pgnum = 0; pgnum < NPTENTRIES; pgnum++) {
 		// Question: here PGNUM(UTOP) = 977920 but when I run the code, the loop ends at pgnum = 1023. What seems to be going wrong here?  Solution? use the address &uvpt[pgnum] instead.
 		// Page fault is caused everytime a child tries to print. I may not be duplicating pages properly.
-		if ( (uvpd[pgnum] & PTE_U) && (uvpd[pgnum] & PTE_P) ) {
-			if ( (uvpt[pgnum] & PTE_U) && (uvpt[pgnum] & PTE_P) ) { // before this, check that uvpd is present.
+		//cprintf("end of iteration reached. pgnum: %08x. pgnum UTOP: %08x\n", pgnum, PGNUM(UTOP));
+		if ( (uvpd[pgnum >> 10] & PTE_U) && (uvpd[pgnum >> 10] & PTE_P) ) {
+			if ( (uvpt[pgnum & 0x3ff] & PTE_U) && (uvpt[pgnum & 0x3ff] & PTE_P) ) { // before this, check that uvpd is present.
 				duppage(envid, pgnum);
 			}
 		}
-//		cprintf("end of iteration reached. pgnum: %08x. pgnum UTOP: %08x\n", pgnum, PGNUM(UTOP));
 	}
 	cprintf("pgnum: %d\n", pgnum);
 	cprintf("alloc result reached.\n");	
