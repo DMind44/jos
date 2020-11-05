@@ -159,6 +159,7 @@ fork(void)
 	}
 	// mark the child as runnable and return child envid if in parent, 0 if in child and <0 on error
 	cprintf("set status reached.\n");	
+	sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall);
 	int set_status_result = sys_env_set_status(envid, ENV_RUNNABLE);
 	if (set_status_result < 0) {
 		return set_status_result;
