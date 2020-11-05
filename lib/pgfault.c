@@ -29,13 +29,13 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 		// First time through!
 		// LAB 7: Your code here.
 		// allocate one page of memory with top at UXSTACKTOP
-		envid_t envid = sys_getenvid();
-		int alloc_result = sys_page_alloc(envid, (void *) UXSTACKTOP-PGSIZE, PTE_W | PTE_P | PTE_U);
+//		envid_t envid = sys_getenvid();
+		int alloc_result = sys_page_alloc(thisenv->env_id, (void *) UXSTACKTOP-PGSIZE, PTE_W | PTE_P | PTE_U);
 		if (alloc_result < 0) {
 			panic("cannot allocate page for exception stack");
 		}
 		// tell kernel to call the assembly-language _pgfault_upcall routine when a page fault occurs
-		int set_upcall_result = sys_env_set_pgfault_upcall(envid, _pgfault_upcall);
+		int set_upcall_result = sys_env_set_pgfault_upcall(thisenv->env_id, _pgfault_upcall);
 		// check return result of this
 		if (set_upcall_result < 0) {
 			panic("failed to set env pgfault upcall");
