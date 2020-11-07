@@ -27,7 +27,7 @@ pgfault(struct UTrapframe *utf)
 	// Allocate a new page, map it at a temporary location (PFTEMP),
 	// copy the data from the old page to the new page, then move the new
 	// page to the old page's address.
-	envid_t envid = sys_getenvid();
+	envid_t envid = 0; // set envid to 0 (current environment)
 	if ((sys_page_alloc(envid, PFTEMP, PTE_P | PTE_U | PTE_W)) < 0) {
 		panic("sys_page_alloc failed");
 	}
@@ -42,9 +42,7 @@ pgfault(struct UTrapframe *utf)
 // Map our virtual page pn (address pn*PGSIZE) into the target envid
 // at the same virtual address.  If the page is writable or copy-on-write,
 // the new mapping must be created copy-on-write, and then our mapping must be
-// marked copy-on-write as well.  (Exercise: Why do we need to mark ours
-// copy-on-write again if it was already copy-on-write at the beginning of
-// this function?)
+// marked copy-on-write as well.  
 //
 // Returns: 0 on success, < 0 on error.
 // It is also OK to panic on error.
@@ -82,13 +80,7 @@ duppage(envid_t envid, unsigned pn)
 //
 // Returns: child's envid to the parent, 0 to the child, < 0 on error.
 // It is also OK to panic on error.
-//
-// Hint:
-//   Use uvpd, uvpt, and duppage.
-//   Remember to fix "thisenv" in the child process.
-//   Neither user exception stack should ever bpe marked copy-on-write,
-//   so you must allocate a new page for the child's user exception stack.
-//
+
 envid_t
 fork(void)
 {

@@ -129,9 +129,7 @@ sys_env_set_status(envid_t envid, int status)
 static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
-	// LAB 6: Your code here.
 	struct Env * env;
-	user_mem_assert(curenv, func, sizeof(func), PTE_U|PTE_P);
 	if(ENVX(envid) >= NENV || (envid2env(envid, &env, 1) < 0))
 		return -E_BAD_ENV;
 	env->env_pgfault_upcall = func;
@@ -157,12 +155,6 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 static int
 sys_page_alloc(envid_t envid, void *va, int perm)
 {
-	// Hint: This function is a wrapper around page_alloc() and
-	//   page_insert() from kern/pmap.c.
-	//   Most of the new code you write should be to check the
-	//   parameters for correctness.
-	//   If page_insert() fails, remember to free the page you
-	//   allocated!
 	struct Env * env;
 	if (ENVX(envid) >= NENV || (envid2env(envid, &env, 1) < 0))
 		return -E_BAD_ENV;
