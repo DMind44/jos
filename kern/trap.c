@@ -377,15 +377,14 @@ page_fault_handler(struct Trapframe *tf)
 		if  (tf->tf_esp >= (UXSTACKTOP - PGSIZE) && tf->tf_esp < UXSTACKTOP) {
 			// push empty 32-bit word
 			tf->tf_esp -= 0x4;
-			// check to make sure you have permisions to do this / use user mem assert or dont bother writing 
-//			*(long *) tf->tf_esp = 0x0;
 		}
 		else {
 			tf->tf_esp = UXSTACKTOP;	
 		}
-			// push UTrapframe
+		// push UTrapframe
 		tf->tf_esp -= sizeof(struct UTrapframe);
-		user_mem_assert(curenv, (void *) UXSTACKTOP-PGSIZE, PGSIZE, PTE_P | PTE_W);
+		user_mem_assert(curenv, (void *)UXSTACKTOP-sizeof(struct UTrapframe), sizeof(struct UTrapframe), PTE_U|PTE_P|PTE_W);
+		user_mem_assert(curenv, (void *) UXSTACKTOP-PGSIZE, PGSIZE, PTE_U | PTE_P | PTE_W);
 		*(struct UTrapframe *) tf->tf_esp = exception_stack;
 			
 		curenv->env_tf.tf_eip = (uint32_t) curenv->env_pgfault_upcall;

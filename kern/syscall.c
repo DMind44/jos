@@ -131,6 +131,7 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 6: Your code here.
 	struct Env * env;
+	user_mem_assert(curenv, func, sizeof(func), PTE_U|PTE_P);
 	if(ENVX(envid) >= NENV || (envid2env(envid, &env, 1) < 0))
 		return -E_BAD_ENV;
 	env->env_pgfault_upcall = func;
@@ -165,9 +166,6 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	struct Env * env;
 	if (ENVX(envid) >= NENV || (envid2env(envid, &env, 1) < 0))
 		return -E_BAD_ENV;
-//	int envid_result = envid2env(envid, &env, 1);
-//	if (envid_result < 0)
-//		return envid_result;
 	if (va >= (void *)UTOP ||(int) va % PGSIZE != 0)
 		return -E_INVAL;
 	if (!(perm & (PTE_U | PTE_P)))
@@ -207,8 +205,9 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   Use the third argument to page_lookup() to
 	//   check the current permissions on the page.
 
-	if(ENVX(srcenvid) >= NENV || ENVX(dstenvid) >= NENV)
+	if(ENVX(srcenvid) >= NENV || ENVX(dstenvid) >= NENV) {
 		return -E_BAD_ENV;
+	}
 	struct Env * srcenv;
 	struct Env * dstenv;
 	int srcenvid_result = envid2env(srcenvid, &srcenv, 1);
@@ -235,7 +234,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 		return -E_INVAL;
 	}
 	int insert_result = page_insert(dstenv->env_pgdir, srcpage, dstva, perm);
-	if(insert_result != 0) {
+	if(insert_result) {
 		return -E_NO_MEM;
 	}
 	return 0;
@@ -251,8 +250,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 static int
 sys_page_unmap(envid_t envid, void *va)
 {
-	// Hint: This function is a wrapper around page_remove().
-
+	//This function is a wrapper around page_remove().
 	if (ENVX(envid) >= NENV)
 		return -E_BAD_ENV;
 	struct Env * env;
