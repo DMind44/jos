@@ -383,8 +383,8 @@ page_fault_handler(struct Trapframe *tf)
 		}
 		// push UTrapframe
 		tf->tf_esp -= sizeof(struct UTrapframe);
-		user_mem_assert(curenv, (void *)UXSTACKTOP-sizeof(struct UTrapframe), sizeof(struct UTrapframe), PTE_U|PTE_P|PTE_W);
-		user_mem_assert(curenv, (void *) UXSTACKTOP-PGSIZE, PGSIZE, PTE_U | PTE_P | PTE_W);
+		user_mem_assert(curenv, curenv->env_pgfault_upcall, sizeof(curenv->env_pgfault_upcall), PTE_U|PTE_P);
+		user_mem_assert(curenv, (void *) tf->tf_esp, sizeof(struct UTrapframe), PTE_U|PTE_P|PTE_W);
 		*(struct UTrapframe *) tf->tf_esp = exception_stack;
 			
 		curenv->env_tf.tf_eip = (uint32_t) curenv->env_pgfault_upcall;
