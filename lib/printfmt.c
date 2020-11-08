@@ -87,12 +87,26 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 	unsigned long long num;
 	int base, lflag, width, precision, altflag;
 	char padc;
-
+	uint16_t attr = 0;
 	while (1) {
 		while ((ch = *(unsigned char *) fmt++) != '%') {
 			if (ch == '\0')
 				return;
-			putch(ch, putdat);
+			if (ch == '\27') { 
+				char * attrStr = "  00";
+				strncpy(attrStr, fmt, 2);
+				fmt += 2;
+				/*int i = 2;
+				while (i < 4) {
+					ch = *(unsigned char *) fmt++;
+					attrStr[i] = ch;
+					i++;
+				}
+				*/
+				attr = strtol(attrStr, &attrStr+3, 16);	
+				continue;
+			}
+			putch(ch | attr, putdat);
 		}
 
 		// Process a %-escape sequence
