@@ -101,12 +101,6 @@ sys_exofork(void)
 static int
 sys_env_set_status(envid_t envid, int status)
 {
-	// Hint: Use the 'envid2env' function from kern/env.c to translate an
-	// envid to a struct Env.
-	// You should set envid2env's third argument to 1, which will
-	// check whether the current environment has permission to set
-	// envid's status.
-
 	struct Env * env;
 	int envid_result = envid2env(envid, &env, 1);
 	if (envid_result < 0)
@@ -115,7 +109,6 @@ sys_env_set_status(envid_t envid, int status)
 		return -E_INVAL;
 	env->env_status = status;
 	return 0;
-
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -152,13 +145,6 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 static int
 sys_page_alloc(envid_t envid, void *va, int perm)
 {
-	// Hint: This function is a wrapper around page_alloc() and
-	//   page_insert() from kern/pmap.c.
-	//   Most of the new code you write should be to check the
-	//   parameters for correctness.
-	//   If page_insert() fails, remember to free the page you
-	//   allocated!
-
 	if (!envid)
 		return -E_BAD_ENV;
 	struct Env * env;
@@ -197,13 +183,6 @@ static int
 sys_page_map(envid_t srcenvid, void *srcva,
 	     envid_t dstenvid, void *dstva, int perm)
 {
-	// Hint: This function is a wrapper around page_lookup() and
-	//   page_insert() from kern/pmap.c.
-	//   Again, most of the new code you write should be to check the
-	//   parameters for correctness.
-	//   Use the third argument to page_lookup() to
-	//   check the current permissions on the page.
-
 	if(ENVX(srcenvid) >= NENV || ENVX(dstenvid) >= NENV)
 		return -E_BAD_ENV;
 	struct Env * srcenv;
@@ -248,8 +227,6 @@ sys_page_map(envid_t srcenvid, void *srcva,
 static int
 sys_page_unmap(envid_t envid, void *va)
 {
-	// Hint: This function is a wrapper around page_remove().
-
 	if (ENVX(envid) >= NENV)
 		return -E_BAD_ENV;
 	struct Env * env;
@@ -260,7 +237,6 @@ sys_page_unmap(envid_t envid, void *va)
 		return -E_INVAL;
 	page_remove(env->env_pgdir, va);
 	return 0;
-
 }
 
 // Try to send 'value' to the target env 'envid'.
@@ -291,7 +267,7 @@ sys_page_unmap(envid_t envid, void *va)
 //	-E_BAD_ENV if environment envid doesn't currently exist.
 //		(No need to check permissions.)
 //	-E_IPC_NOT_RECV if envid is not currently blocked in sys_ipc_recv,
-//		or anothepr environment managed to send first.
+//		or another environment managed to send first.
 //	-E_INVAL if srcva < UTOP but srcva is not page-aligned.
 //	-E_INVAL if srcva < UTOP and perm is inappropriate
 //		(see sys_page_alloc).

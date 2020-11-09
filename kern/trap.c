@@ -146,8 +146,6 @@ trap_init_percpu(void)
 	// get a triple fault.  If you set up an individual CPU's TSS
 	// wrong, you may not get a fault until you try to return from
 	// user space on that CPU.
-	//
-	// LAB 5: Your code here:
 	uint8_t thiscpu_num = thiscpu->cpu_id;
 	struct Taskstate * thiscpu_ts = &thiscpu->cpu_ts;
 	// Setup a TSS so that we get the right stack

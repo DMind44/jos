@@ -27,8 +27,6 @@ sched_yield(void)
 	// another CPU (env_status == ENV_RUNNING). If there are
 	// no runnable environments, simply drop through to the code
 	// below to halt the cpu.
-
-	// LAB 5: Your code here.
 	size_t i;
 	int env_index = -1;
 	if (curenv) {

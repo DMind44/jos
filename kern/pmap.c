@@ -257,8 +257,6 @@ mem_init_mp(void)
 		uintptr_t kstacktop_i = KSTACKTOP -  KSTKSIZE - (i*(KSTKGAP+KSTKSIZE));
 		boot_map_region(kern_pgdir, kstacktop_i, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
 	}
-
-
 }
 
 // --------------------------------------------------------------
@@ -276,6 +274,17 @@ mem_init_mp(void)
 void
 page_init(void)
 {
+	//  1) Mark physical page 0 as in use.
+	//     This way we preserve the real-mode IDT and BIOS structures
+	//     in case we ever need them.  (Currently we don't, but...)
+	//  2) The rest of base memory, [PGSIZE, npages_basemem * PGSIZE)
+	//     is free.
+	//  3) Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
+	//     never be allocated.
+	//  4) Then extended memory [EXTPHYSMEM, ...).
+	//     Some of it is in use, some is free. Where is the kernel
+	//     in physical memory?  Which pages are already in use for
+	//     page tables and other data structures?	
 	size_t i;
 	// mark physical page 0 as in use
 	pages[0].pp_ref = 1;
@@ -784,7 +793,6 @@ check_kern_pgdir(void)
 				== PADDR(percpu_kstacks[n]) + i);
 		for (i = 0; i < KSTKGAP; i += PGSIZE)
 			assert(check_va2pa(pgdir, base + i) == ~0);
-
 	}
 
 	// check PDE permissions
