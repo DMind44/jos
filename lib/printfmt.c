@@ -92,17 +92,11 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		while ((ch = *(unsigned char *) fmt++) != '%') {
 			if (ch == '\0')
 				return;
+			// escape character for printing in color
 			if (ch == '\27') { 
 				char * attrStr = "  00";
 				strncpy(attrStr, fmt, 2);
 				fmt += 2;
-				/*int i = 2;
-				while (i < 4) {
-					ch = *(unsigned char *) fmt++;
-					attrStr[i] = ch;
-					i++;
-				}
-				*/
 				attr = strtol(attrStr, &attrStr+3, 16);	
 				continue;
 			}
