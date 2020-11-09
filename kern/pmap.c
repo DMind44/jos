@@ -152,7 +152,6 @@ mem_init(void)
 	memset(pages, 0, npages*sizeof(struct PageInfo));
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
-	// LAB 3: Your code here.
 	envs = (struct Env *) boot_alloc(NENV*sizeof(struct Env));
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -183,7 +182,6 @@ mem_init(void)
 	// Permissions:
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
-	// LAB 3: Your code here.
 	boot_map_region(kern_pgdir, UENVS, NENV*sizeof(struct Env), 
 			PADDR(envs), PTE_U | PTE_P);
 	//////////////////////////////////////////////////////////////////////
@@ -198,6 +196,7 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, 
 			PADDR(bootstack), PTE_W | PTE_P);
+
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -253,8 +252,11 @@ mem_init_mp(void)
 	//             Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	//
-	// LAB 5: Your code here:
-
+	size_t i;
+	for (i = 0; i < NCPU; i++) {
+		uintptr_t kstacktop_i = KSTACKTOP -  KSTKSIZE - (i*(KSTKGAP+KSTKSIZE));
+		boot_map_region(kern_pgdir, kstacktop_i, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -272,15 +274,6 @@ mem_init_mp(void)
 void
 page_init(void)
 {
-<<<<<<< HEAD
-	// LAB 5:
-	// Change your code to mark the physical page at MPENTRY_PADDR
-	// as in use
-
-	// The example code here marks all physical pages as free.
-	// However this is not truly the case.  What memory is free?
-=======
->>>>>>> lab4
 	//  1) Mark physical page 0 as in use.
 	//     This way we preserve the real-mode IDT and BIOS structures
 	//     in case we ever need them.  (Currently we don't, but...)
@@ -297,6 +290,10 @@ page_init(void)
 	pages[0].pp_ref = 1;
 	// the rest of base memory is free
 	for (i = 1; i < npages; i++) {
+	    if (page2pa(&pages[i]) == MPENTRY_PADDR) {
+		pages[i].pp_ref = 1;
+		continue;
+	    }
 	    if (page2pa(&pages[i]) < (IOPHYSMEM)) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
@@ -400,7 +397,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		page->pp_ref++;
 		pte = (pte_t *) page2kva(page);
 		*pde = PADDR(pte) | PTE_P | PTE_W | PTE_U;
-	}
+    }
 	return &(pte[PTX(va)]);
 } 
 //
@@ -532,8 +529,10 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// beginning of the MMIO region.  Because this is static, its
 	// value will be preserved between calls to mmio_map_region
 	// (just like nextfree in boot_alloc).
-	static uintptr_t base = MMIOBASE;
-
+	static uintptr_t base;
+	if (!base) {
+		base = MMIOBASE;
+	}
 	// Reserve size bytes of virtual memory starting at base and
 	// map physical pages [pa,pa+size) to virtual addresses
 	// [base,base+size).  Since this is device memory and not
@@ -548,11 +547,15 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Be sure to round size up to a multiple of PGSIZE and to
 	// handle if this reservation would overflow MMIOLIM (it's
 	// okay to simply panic if this happens).
-	//
-	// Hint: The staff solution uses boot_map_region.
-	//
-	// Your code here:
-	panic("mmio_map_region not implemented");
+	if (ROUNDUP(base + size, PGSIZE) >= MMIOLIM) {
+		panic("Overflowed MMIOLIM");
+	}
+	boot_map_region(kern_pgdir, base, size, pa, PTE_PCD|PTE_PWT|PTE_W);
+	// Update base for the next region.
+	uintptr_t oldbase = base;
+	base += ROUNDUP(size, PGSIZE);
+	// But we still want to return the base of the region just allocated.
+	return (void *) oldbase;
 }
 
 static uintptr_t user_mem_check_addr;
