@@ -1,0 +1,22 @@
+Question 1) We think that the type of variable x is uintptr_t because physical addresses cannot be deferenced sensibly in kernel.
+Question 2)
+page addr	points to
+955 0xeec00000: user read only page info (UPAGES)
+957 0xef400000: user read only page table
+959 0xefff8000: Kernel Stack.
+960 0xf0000000: Kernbase, all of physical mem is mapped from here to last page
+...
+1023 0xffc00000: last page, mapped to some of physical memory
+
+Question 3) The bottom 12 bits of a PTE designate its permissions. Memory can
+be labeled as writable or read only to the user or kernel.
+
+Question 4) Although a 32 bit operating system could potentially allow for up
+to 4 gigabytes, JOS only has the top 256 MB of its address space available.
+because all of the physical pages are mapped above kernbase.
+
+Question 5)  We use 64K * 8B = 512KB for the Page Info structures. Then we use 64 page tables * 4 KB = 256KB for the page tables and 4KB for the kernel page directory. Hence there is 512KB + 256KB + 4KB = 772KB required for overhead.
+
+
+Question 6) We transition to a higher EIP before running c code. The c code is
+linked 1 MB above KERNBASE. Since we have two mappings, i.e. from [0, 4MB) of VA to [0, 4MB) of PA and from (0, 4MB) of VA to (KERNBASE, KERBASE+4MB) of PA, we are able to execute at the low EIP due to the straigt accross mapping. Furthermore, we are able to transition to higher memory becase of the  "top down mapping" we have from (0, 4MB] of VA to [KERNBASE, KERNBASE+4MB) of PA. The transition is necessary because all of the physical memory is going to be mapped above KERNBASE, so the memory below KERNBASE should not be used.
