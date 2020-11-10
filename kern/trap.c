@@ -78,7 +78,6 @@ trap_init(void)
 	void SPURIOUS();
 	void IDE();
 
-
 	void DIVIDE_ERROR();
 	void DEBUG();
 	void NON_MASKABLE_INTERRUPT();
@@ -112,7 +111,7 @@ trap_init(void)
 	SETGATE(idt[11], 1, GD_KT, &SEGMENT_NOT_PRESENT, 0);
 	SETGATE(idt[12], 1, GD_KT, &STACK_FAULT, 0);
 	SETGATE(idt[13], 1, GD_KT, &GENERAL_PROTECTION, 0);
-	SETGATE(idt[14], 1, GD_KT, &PAGE_FAULT, 0);
+	SETGATE(idt[14], 0, GD_KT, &PAGE_FAULT, 0); // changed this is_trap from one to zero because using an interrupt gate ensures that interrupts are disabled in kernel mode. Do I need to do this for all the other gates?
 	SETGATE(idt[16], 1, GD_KT, &X87_FPU_FLOATINGPOINT_ERROR, 0);
 	SETGATE(idt[17], 1, GD_KT, &ALIGNMENT_CHECK, 0);
 	SETGATE(idt[18], 1, GD_KT, &MACHINE_CHECK, 0);
@@ -253,7 +252,8 @@ trap_dispatch(struct Trapframe *tf)
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 7: Your code here.
 	case IRQ_OFFSET + IRQ_TIMER:
-		sched_yield();
+		lapic_eoi();
+		sched_yield(); 
 	default:
 		// Unexpected trap: The user process or the kernel has a bug.
 		print_trapframe(tf);
