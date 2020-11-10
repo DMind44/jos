@@ -70,9 +70,13 @@ void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
-
-
-
+	
+	// initiate IRQs
+	void TIMER();
+	void KBD();
+	void SERIAL();
+	void SPURIOUS();
+	void IDE();
 
 
 	void DIVIDE_ERROR();
@@ -115,6 +119,11 @@ trap_init(void)
 	SETGATE(idt[19], 1, GD_KT, &SIMD_FLOATING_POINT_EXCEPTION, 0);
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, &SYSTEM_CALL, 3);
 
+	SETGATE(idt[IRQ_OFFSET+IRQ_TIMER], 0, GD_KT, &TIMER, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_KBD], 0, GD_KT, &KBD, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_SERIAL], 0, GD_KT, &SERIAL, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_SPURIOUS], 0, GD_KT, &SPURIOUS, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_IDE], 0, GD_KT, &IDE, 0);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -243,6 +252,8 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 7: Your code here.
+	case IRQ_OFFSET + IRQ_TIMER:
+		sched_yield();
 	default:
 		// Unexpected trap: The user process or the kernel has a bug.
 		print_trapframe(tf);
