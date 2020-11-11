@@ -298,7 +298,32 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 7: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	struct Env e;	
+	if (envid2env(envid, &e, 0) < 0) {
+		return -E_BaD_ENV;
+	}
+	if (!e->env_ipc_recving) {
+		return -E_IPC_RECV;
+	}
+	if ( (srcva < UTOP) && (srcva%PGSIZE) !=0) {
+		return -E_INVAL;
+	}
+	if ( (srcva < UTOP) && !(perm & (PTE_U | PTE_P)) ) {
+		return -E_INVAL;
+	}
+	pte_t * pte_store;	
+	struct PageInfo * srcpage = page_lookup(curenv->env_pgdir, srcva, &pte_store);	
+	if ( (srcva < UTOP) && !(scrpage) ) {
+		return -E_INVAL;
+	}
+	if ((perm&PTE_W) && !(*pte_store & PTE_W)) {
+		return -E_INVAL;
+	}
+	int insert_result = page_insert(e->env_pgdir, srcpage, srcva, perm);
+	if(insert_result) {
+		return -E_NO_MEM;
+	}
+	return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -316,6 +341,15 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 7: Your code here.
+	if ((dstva < UTOP) && (dstva % PGSIZE) != 0) {
+		return -E_INVAL;
+	}
+//	struct Env e;
+//	envid2env(0, &e, 0);
+	curenv->env_ipc_recving = 1;
+	if (dstva < UTOP) {
+		curenv->env_ipc_dstva = dstva;
+	}
 	panic("sys_ipc_recv not implemented");
 	return 0;
 }
