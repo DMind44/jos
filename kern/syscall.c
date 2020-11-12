@@ -256,6 +256,50 @@ sys_page_unmap(envid_t envid, void *va)
 
 }
 
+static int
+ipc_helper(envid_t recvenvid, envid_t sendenvid, uint32_t value, void *srcva, unsigned perm)
+{
+	struct Env *recvenv;
+	struct Env *sendenv;
+	if (envid2env(recvenvid, &recvenv, 0) < 0) {
+		return -E_BAD_ENV;
+	}
+	if (envid2env(sendenvid, &sendenv, 0) < 0) {
+		return -E_BAD_ENV;
+	}
+	recvenv->env_ipc_perm = 0;
+	if (srcva < (void *) UTOP && (recvenv->env_ipc_dstva < (void *) UTOP) ) {
+		if ( ((int) srcva%PGSIZE) !=0) {
+			return -E_INVAL;
+		}
+		if (!(perm & (PTE_U | PTE_P)) ) {
+			return -E_INVAL;
+		}
+		pte_t * pte;	
+		struct PageInfo * srcpage = page_lookup(sendenv->env_pgdir, srcva, &pte);	
+		if (!(srcpage) ) {
+			return -E_INVAL;
+		}
+
+		if ((perm & PTE_W) && !(*pte & PTE_W)) {
+			return -E_INVAL;
+		}
+		cprintf("sending env: %x \n", sendenvid);
+		cprintf("receiving env addr: %x \n", recvenv->env_ipc_dstva);		
+		int insert_result = page_insert(recvenv->env_pgdir, srcpage, recvenv->env_ipc_dstva, perm);
+		if(insert_result < 0) {
+			return -E_NO_MEM;
+		}
+		recvenv->env_ipc_perm = perm;
+	}
+	//send value
+	recvenv->env_ipc_recving = 0;
+	recvenv->env_ipc_from = sendenvid;
+	recvenv->env_ipc_value = value;
+	recvenv->env_tf.tf_regs.reg_eax = 0;
+	recvenv->env_status = ENV_RUNNABLE;
+	return 0;
+}
 // Try to send 'value' to the target env 'envid'.
 // If srcva < UTOP, then also send page currently mapped at 'srcva',
 // so that receiver gets a duplicate mapping of the same page.
@@ -301,9 +345,20 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	if (envid2env(envid, &e, 0) < 0) {
 		return -E_BAD_ENV;
 	}
+	// check if there is a recving env, if not, we save our parameters
+	// and set ourselves NOTRUNNABLE
 	if (!e->env_ipc_recving) {
-		return -E_IPC_NOT_RECV;
+		curenv->value_to_send = value;
+		curenv->srcva_to_send = srcva;
+		curenv->perm_for_send = perm;
+		e->env_senders[e->senders_count] = curenv->env_id;
+		e->senders_count++;
+		curenv->env_status = ENV_NOT_RUNNABLE;
+		sys_yield();
+//		return -E_IPC_NOT_RECV;
 	}
+	return ipc_helper(envid, curenv->env_id, value, srcva, perm);
+/*	
 	e->env_ipc_perm = 0;
 	if (srcva < (void *) UTOP && (e->env_ipc_dstva < (void *) UTOP) ) {
 		if ( ((int) srcva%PGSIZE) !=0) {
@@ -334,7 +389,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	e->env_ipc_value = value;
 	e->env_tf.tf_regs.reg_eax = 0;
 	e->env_status = ENV_RUNNABLE;
-	return 0; 
+*/
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -351,17 +406,37 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 static int
 sys_ipc_recv(void *dstva)
 {
-	// LAB 7: Your code here.
 
 	if ((dstva < (void *)UTOP) && ((int)dstva % PGSIZE) != 0) {
 		return -E_INVAL;
 	}
-	curenv->env_ipc_recving = 1;
+
+	// Go to sleep if count == 0
+	if (curenv->senders_count == 0) {
+		curenv->env_ipc_recving = 1;
+		curenv->env_ipc_dstva = dstva;
+		curenv->env_status = ENV_NOT_RUNNABLE;
+		sys_yield();
+		return 0; // for compiler
+	}
+	
+	// Decrease the count so that we are dealing with the env that incremented senders_count
+	curenv->senders_count--;
+	envid_t sendenvid = curenv->env_senders[curenv->senders_count];
+	struct Env *sendenv;
+	if (envid2env(sendenvid, &sendenv, 0) < 0) {
+		return -E_BAD_ENV;
+	}
 	curenv->env_ipc_dstva = dstva;
-	curenv->env_status = ENV_NOT_RUNNABLE;
-	sys_yield();
-	return 0; // for the compiler
+	ipc_helper(curenv->env_id, sendenvid, sendenv->value_to_send, sendenv->srcva_to_send, sendenv->perm_for_send);
+	
+	// set the sending env to be runnable again.
+	sendenv->env_tf.tf_regs.reg_eax = 0;
+	sendenv->env_status = ENV_RUNNABLE;
+	return 0;
 }
+
+
 
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t

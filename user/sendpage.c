@@ -24,6 +24,7 @@ umain(int argc, char **argv)
 
 		memcpy(TEMP_ADDR_CHILD, str2, strlen(str2) + 1);
 		ipc_send(who, 0, TEMP_ADDR_CHILD, PTE_P | PTE_W | PTE_U);
+		cprintf("got past ipc_send!\n");		
 		return;
 	}
 
