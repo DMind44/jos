@@ -66,10 +66,10 @@ struct Env {
 	envid_t env_ipc_from;		// envid of the sender
 	int env_ipc_perm;		// Perm of page mapping received
 	envid_t env_senders[10];        // Array to store senders to this env [Lab7 challenge]
-	int senders_count;
-	uint32_t value_to_send;
-	void *srcva_to_send;
-	unsigned perm_for_send;
+	int senders_count;              // Keep track of how many senders want to send to us
+	uint32_t value_to_send;         // Value we want to send 
+	void *srcva_to_send;            // Page we may have to map to receiver
+	unsigned perm_for_send;         // Permissions for mapping 
 };
 
 

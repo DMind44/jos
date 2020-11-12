@@ -284,9 +284,8 @@ ipc_helper(envid_t recvenvid, envid_t sendenvid, uint32_t value, void *srcva, un
 		if ((perm & PTE_W) && !(*pte & PTE_W)) {
 			return -E_INVAL;
 		}
-		cprintf("sending env: %x \n", sendenvid);
-		cprintf("receiving env addr: %x \n", recvenv->env_ipc_dstva);		
-		int insert_result = page_insert(recvenv->env_pgdir, srcpage, recvenv->env_ipc_dstva, perm);
+		int insert_result = page_insert(recvenv->env_pgdir, srcpage,
+						recvenv->env_ipc_dstva, perm);
 		if(insert_result < 0) {
 			return -E_NO_MEM;
 		}
@@ -355,41 +354,8 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		e->senders_count++;
 		curenv->env_status = ENV_NOT_RUNNABLE;
 		sys_yield();
-//		return -E_IPC_NOT_RECV;
 	}
 	return ipc_helper(envid, curenv->env_id, value, srcva, perm);
-/*	
-	e->env_ipc_perm = 0;
-	if (srcva < (void *) UTOP && (e->env_ipc_dstva < (void *) UTOP) ) {
-		if ( ((int) srcva%PGSIZE) !=0) {
-			return -E_INVAL;
-		}
-		if (!(perm & (PTE_U | PTE_P)) ) {
-			return -E_INVAL;
-		}
-		pte_t * pte;	
-		struct PageInfo * srcpage = page_lookup(curenv->env_pgdir, srcva, &pte);	
-		if (!(srcpage) ) {
-			return -E_INVAL;
-		}
-
-		if ((perm & PTE_W) && !(*pte & PTE_W)) {
-			return -E_INVAL;
-		}
-		
-		int insert_result = page_insert(e->env_pgdir, srcpage, e->env_ipc_dstva, perm);
-		if(insert_result < 0) {
-			return -E_NO_MEM;
-		}
-		e->env_ipc_perm = perm;
-	}
-	//send value
-	e->env_ipc_recving = 0;
-	e->env_ipc_from = curenv->env_id;
-	e->env_ipc_value = value;
-	e->env_tf.tf_regs.reg_eax = 0;
-	e->env_status = ENV_RUNNABLE;
-*/
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -428,7 +394,8 @@ sys_ipc_recv(void *dstva)
 		return -E_BAD_ENV;
 	}
 	curenv->env_ipc_dstva = dstva;
-	ipc_helper(curenv->env_id, sendenvid, sendenv->value_to_send, sendenv->srcva_to_send, sendenv->perm_for_send);
+	ipc_helper(curenv->env_id, sendenvid, sendenv->value_to_send,
+		   sendenv->srcva_to_send, sendenv->perm_for_send);
 	
 	// set the sending env to be runnable again.
 	sendenv->env_tf.tf_regs.reg_eax = 0;

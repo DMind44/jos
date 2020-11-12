@@ -22,7 +22,6 @@
 int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
-	// LAB 7: Your code here.
 	if (!pg) {
 		pg = (void *) UTOP;
 	}
@@ -55,12 +54,6 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 	if (!pg) {
 		pg = (void *) UTOP;
 	}
-/*	int send_result;
-	while((send_result = sys_ipc_try_send(to_env, val, pg, perm)) < 0) {
-		if (send_result != -E_IPC_NOT_RECV) {
-			panic("got an error message other thatn -E_IPC_NOT_RECV");
-		}
-	} */
 	sys_ipc_try_send(to_env, val, pg, perm);
 	sys_yield();
 }
