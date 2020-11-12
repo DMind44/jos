@@ -297,8 +297,6 @@ sys_page_unmap(envid_t envid, void *va)
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
-	// LAB 7: Your code here.
-
 	struct Env * e;	
 	if (envid2env(envid, &e, 0) < 0) {
 		return -E_BAD_ENV;
@@ -306,7 +304,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	if (!e->env_ipc_recving) {
 		return -E_IPC_NOT_RECV;
 	}
-	e->env_ipc_perm = 0;	
+	e->env_ipc_perm = 0;
 	if (srcva < (void *) UTOP && (e->env_ipc_dstva < (void *) UTOP) ) {
 		if ( ((int) srcva%PGSIZE) !=0) {
 			return -E_INVAL;
@@ -314,18 +312,18 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		if (!(perm & (PTE_U | PTE_P)) ) {
 			return -E_INVAL;
 		}
-		pte_t * pte_store;	
-		struct PageInfo * srcpage = page_lookup(curenv->env_pgdir, srcva, &pte_store);	
+		pte_t * pte;	
+		struct PageInfo * srcpage = page_lookup(curenv->env_pgdir, srcva, &pte);	
 		if (!(srcpage) ) {
 			return -E_INVAL;
 		}
-   
 
-		if ((perm&PTE_W) && !(*pte_store & PTE_W)) {
+		if ((perm & PTE_W) && !(*pte & PTE_W)) {
 			return -E_INVAL;
 		}
-		int insert_result = page_insert(e->env_pgdir, srcpage, srcva, perm);
-		if(insert_result) {
+		
+		int insert_result = page_insert(e->env_pgdir, srcpage, e->env_ipc_dstva, perm);
+		if(insert_result < 0) {
 			return -E_NO_MEM;
 		}
 		e->env_ipc_perm = perm;
@@ -334,6 +332,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	e->env_ipc_recving = 0;
 	e->env_ipc_from = curenv->env_id;
 	e->env_ipc_value = value;
+	e->env_tf.tf_regs.reg_eax = 0;
 	e->env_status = ENV_RUNNABLE;
 	return 0; 
 }
@@ -360,7 +359,8 @@ sys_ipc_recv(void *dstva)
 	curenv->env_ipc_recving = 1;
 	curenv->env_ipc_dstva = dstva;
 	curenv->env_status = ENV_NOT_RUNNABLE;
-	return 0; 
+	sys_yield();
+	return 0; // for the compiler
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
