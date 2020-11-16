@@ -338,7 +338,7 @@ ipc_helper(envid_t recvenvid, envid_t sendenvid, uint32_t value, void *srcva, un
 //	-E_NO_MEM if there's not enough memory to map srcva in envid's
 //		address space.
 static int
-sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
+sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	struct Env * e;	
 	if (envid2env(envid, &e, 0) < 0) {
@@ -394,9 +394,11 @@ sys_ipc_recv(void *dstva)
 		return -E_BAD_ENV;
 	}
 	curenv->env_ipc_dstva = dstva;
-	ipc_helper(curenv->env_id, sendenvid, sendenv->value_to_send,
-		   sendenv->srcva_to_send, sendenv->perm_for_send);
-	
+	int helper_result = ipc_helper(curenv->env_id, sendenvid, sendenv->value_to_send,
+			sendenv->srcva_to_send, sendenv->perm_for_send);
+	if (helper_result < 0) {
+		return helper_result;
+	}
 	// set the sending env to be runnable again.
 	sendenv->env_tf.tf_regs.reg_eax = 0;
 	sendenv->env_status = ENV_RUNNABLE;
@@ -439,8 +441,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_env_set_pgfault_upcall((envid_t) a1, (void *) a2);
 	case SYS_ipc_recv:
 		return sys_ipc_recv((void *)a1);
-	case SYS_ipc_try_send:
-		return sys_ipc_try_send( (envid_t) a1, a2, (void *) a3, (unsigned) a4); 
+	case SYS_ipc_send:
+		return sys_ipc_send( (envid_t) a1, a2, (void *) a3, (unsigned) a4); 
 	default:
 		return -E_INVAL;
 	}

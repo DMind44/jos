@@ -54,8 +54,9 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 	if (!pg) {
 		pg = (void *) UTOP;
 	}
-	sys_ipc_try_send(to_env, val, pg, perm);
-	sys_yield();
+	if (sys_ipc_send(to_env, val, pg, perm) < 0) {
+		panic("Unexepected error in IPC send");
+	}
 }
 
 // Find the first environment of the given type.  We'll use this to

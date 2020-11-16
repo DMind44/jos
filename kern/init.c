@@ -113,7 +113,6 @@ mp_main(void)
 	// Your code here:
 	lock_kernel();
 	sched_yield();
-	// Remove this after you finish Exercise 6
 }
 
 /*
