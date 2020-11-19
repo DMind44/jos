@@ -301,13 +301,13 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
 static int
 copy_shared_pages(envid_t child)
 {
-	// LAB 5: Your code here.
+	cprintf("spawn envid: %x\n", child);
 	size_t pgnum;
-	for (pgnum = 0; pgnum < PGNUM(UTOP)-1; pgnum++) {
+	for (pgnum = 0; pgnum < PGNUM(UTOP); pgnum++) {
 		if ((uvpd[(pgnum >> 10)] & PTE_U) && (uvpd[(pgnum >> 10)] & PTE_P)) {
 			if ( (uvpt[pgnum] & PTE_U) && (uvpt[pgnum] & PTE_P) && (uvpt[pgnum] & PTE_SHARE) ) {
 				int r;
-				r = sys_page_map(thisenv->env_id, (void *)(pgnum*PGSIZE), child, (void *)(pgnum*PGSIZE), uvpt[(size_t)pgnum]&PTE_SYSCALL);
+				r = sys_page_map(0, (void *)(pgnum*PGSIZE), child, (void *)(pgnum*PGSIZE), uvpt[(size_t)pgnum]&PTE_SYSCALL);
 				if (r < 0) {
 					panic("failed to map page in child.\n");
 				}

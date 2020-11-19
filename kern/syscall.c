@@ -365,6 +365,7 @@ sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	struct Env * e;	
 	if (envid2env(envid, &e, 0) < 0) {
+		cprintf("failing envid: %x\n", envid);
 		return -E_BAD_ENV;
 	}
 	// check if there is a recving env, if not, we save our parameters
@@ -414,6 +415,7 @@ sys_ipc_recv(void *dstva)
 	envid_t sendenvid = curenv->env_senders[curenv->senders_count];
 	struct Env *sendenv;
 	if (envid2env(sendenvid, &sendenv, 0) < 0) {
+		cprintf("recv failing envid: %x\n", sendenvid);
 		return -E_BAD_ENV;
 	}
 	curenv->env_ipc_dstva = dstva;

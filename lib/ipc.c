@@ -54,7 +54,9 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 	if (!pg) {
 		pg = (void *) UTOP;
 	}
-	if (sys_ipc_send(to_env, val, pg, perm) < 0) {
+	int r = sys_ipc_send(to_env, val, pg, perm);
+	if (r < 0) {
+		cprintf("ipc error: %e \n", r);
 		panic("Unexepected error in IPC send");
 	}
 }
