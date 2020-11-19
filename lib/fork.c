@@ -18,7 +18,7 @@ pgfault(struct UTrapframe *utf)
 	void *addr = (void *) utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
 	int r;
-
+	cprintf("faulting addr: %x \n", addr);
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
 	if ( ((err & FEC_WR) == 0) || (uvpt[PGNUM(ROUNDDOWN(addr, PGSIZE))] & PTE_COW) == 0) {
@@ -52,7 +52,14 @@ duppage(envid_t envid, unsigned pn)
 {
 	int r;
 	int perm = PTE_P | PTE_U;
-	if ((uvpt[(size_t)pn] & PTE_W) || (uvpt[(size_t)pn] & PTE_COW)) {
+	// Handles shared pages
+	if (uvpt[(size_t)pn] & PTE_SHARE) {
+		r = sys_page_map(thisenv->env_id, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), uvpt[(size_t)pn]&PTE_SYSCALL);
+		if (r < 0) {
+			panic("failed to map page in child.\n");
+		}
+	}
+	else if ((uvpt[(size_t)pn] & PTE_W) || (uvpt[(size_t)pn] & PTE_COW)) {
 		r = sys_page_map(thisenv->env_id, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), perm | PTE_COW);
 		if (r < 0) {
 			panic("failed to map page in child.\n");
