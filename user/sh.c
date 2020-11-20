@@ -53,8 +53,6 @@ again:
 			// then check whether 'fd' is 0.
 			// If not, dup 'fd' onto file descriptor 0,
 			// then close the original 'fd'.
-
-			// LAB 5: Your code here.
 			if ((fd = open(t, O_RDONLY)) < 0) {
 				cprintf("open %s for read: %e", t, fd);
 				exit();

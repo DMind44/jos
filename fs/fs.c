@@ -53,7 +53,6 @@ free_block(uint32_t blockno)
 // Return block number allocated on success,
 // -E_NO_DISK if we are out of blocks.
 //
-// Hint: use free_block as an example for manipulating the bitmap.
 int
 alloc_block(void)
 {
@@ -61,11 +60,11 @@ alloc_block(void)
 	// contains the in-use bits for BLKBITSIZE blocks.  There are
 	// super->s_nblocks blocks in the disk altogether.
 
-	// LAB 5: Your code here.
 	size_t i;
 	for (i = 1; i < super->s_nblocks; i++) {
 		if (block_is_free(i)) {
 			bitmap[i/32] &= ~(1<<(i%32));
+			// Flush block to help file system consistency.
 			flush_block(diskaddr(i));
 			return i;
 		}
@@ -137,11 +136,9 @@ fs_init(void)
 //	-E_INVAL if filebno is out of range (it's >= NDIRECT + NINDIRECT).
 //
 // Analogy: This is like pgdir_walk for files.
-// Hint: Don't forget to clear any block you allocate.
 static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
-       // LAB 5: Your code here.
 	if (filebno >= NDIRECT+NINDIRECT) {
 		return -E_INVAL;
 	}
@@ -161,7 +158,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 		memset(diskaddr(alloc_result), 0, BLKSIZE);
 		f->f_indirect = alloc_result;
 	}
-	*ppdiskbno = ((uint32_t *) diskaddr(f->f_indirect))+(filebno-NDIRECT); // how do we access the block numbers in f_indirect?
+	*ppdiskbno = ((uint32_t *) diskaddr(f->f_indirect))+(filebno-NDIRECT);
 	return 0;
 }
 
@@ -172,7 +169,6 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 //	-E_NO_DISK if a block needed to be allocated but the disk is full.
 //	-E_INVAL if filebno is out of range.
 //
-// Hint: Use file_block_walk and alloc_block.
 int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {

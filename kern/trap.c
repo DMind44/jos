@@ -249,7 +249,6 @@ trap_dispatch(struct Trapframe *tf)
 		print_trapframe(tf);
 		return;
 	// Handle keyboard and serial interrupts.
-	// LAB 5: Your code here.
 	case IRQ_OFFSET + IRQ_KBD:
 		kbd_intr();
 		return;

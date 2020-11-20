@@ -129,19 +129,14 @@ sys_env_set_status(envid_t envid, int status)
 static int
 sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 {
-	// LAB 5: Your code here.
-	// Remember to check whether the user has supplied us with a good
-	// address!
 	struct Env * env;
 	int envid_result = envid2env(envid, &env, 1);
 	if (envid_result < 0)
 		return -E_BAD_ENV;
+	// Checks whether the user has supplied us with a good address
 	user_mem_assert(curenv, tf, sizeof(struct Trapframe), PTE_U|PTE_P);
-	// set cpl to 3
 	tf->tf_cs = GD_UT | 3;
-	// enable interrupts
 	tf->tf_eflags |= FL_IF;
-	//IOPL of 0
 	tf->tf_eflags &= ~FL_IOPL_MASK;
 	env->env_tf = *tf;
 	return 0;

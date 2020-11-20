@@ -18,7 +18,6 @@ pgfault(struct UTrapframe *utf)
 	void *addr = (void *) utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
 	int r;
-	cprintf("faulting addr: %x \n", addr);
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
 	if ( ((err & FEC_WR) == 0) || (uvpt[PGNUM(ROUNDDOWN(addr, PGSIZE))] & PTE_COW) == 0) {

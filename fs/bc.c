@@ -44,10 +44,6 @@ bc_pgfault(struct UTrapframe *utf)
 
 	// Allocate a page in the disk map region, read the contents
 	// of the block from the disk into that page.
-	// Hint: first round addr to page boundary. fs/ide.c has code to read
-	// the disk.
-	//
-	// LAB 5: you code here:
 	uint32_t secno = ((uint32_t)addr - DISKMAP)/SECTSIZE;
 	void * alignedAddr = ROUNDDOWN(addr, BLKSIZE);
 	sys_page_alloc(thisenv->env_id, alignedAddr, PTE_W | PTE_U | PTE_P);
@@ -58,9 +54,7 @@ bc_pgfault(struct UTrapframe *utf)
 	if ((r = sys_page_map(0, addr, 0, addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) < 0)
 		panic("in bc_pgfault, sys_page_map: %e", r);
 
-	// Check that the block we read was allocated. (exercise for
-	// the reader: why do we do this *after* reading the block
-	// in?)
+	// Check that the block we read was allocated.
 	if (bitmap && block_is_free(blockno))
 		panic("reading free block %08x\n", blockno);
 }
@@ -69,9 +63,6 @@ bc_pgfault(struct UTrapframe *utf)
 // necessary, then clear the PTE_D bit using sys_page_map.
 // If the block is not in the block cache or is not dirty, does
 // nothing.
-// Hint: Use va_is_mapped, va_is_dirty, and ide_write.
-// Hint: Use the PTE_SYSCALL constant when calling sys_page_map.
-// Hint: Don't forget to round addr down.
 void
 flush_block(void *addr)
 {
@@ -80,7 +71,7 @@ flush_block(void *addr)
 	if (addr < (void*)DISKMAP || addr >= (void*)(DISKMAP + DISKSIZE))
 		panic("flush_block of bad va %08x", addr);
 
-	// LAB 5: Your code here.
+
 	if (va_is_mapped(addr) && va_is_dirty(addr)) {
 		uint32_t secno = ((uint32_t)addr - DISKMAP) / SECTSIZE;
 		ide_write(secno, diskaddr(blockno), BLKSECTS);	
