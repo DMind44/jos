@@ -101,6 +101,7 @@ spawn(const char *prog, const char **argv)
 	// Create new child environment
 	if ((r = sys_exofork()) < 0)
 		return r;
+	cprintf("childe env created: %x\n", r);
 	child = r;
 
 	// Set up trap frame, including initial stack.

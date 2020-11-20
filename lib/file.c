@@ -2,7 +2,7 @@
 #include <inc/string.h>
 #include <inc/lib.h>
 
-#define debug 0
+#define debug 1
 
 union Fsipc fsipcbuf __attribute__((aligned(PGSIZE)));
 
@@ -18,7 +18,7 @@ fsipc(unsigned type, void *dstva)
 	static envid_t fsenv;
 	if (fsenv == 0)
 		fsenv = ipc_find_env(ENV_TYPE_FS);
-
+	cprintf("fsenv: %x \n", fsenv);
 	static_assert(sizeof(fsipcbuf) == PGSIZE);
 
 	if (debug)
