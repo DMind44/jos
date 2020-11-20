@@ -186,6 +186,7 @@ file_get_block(struct File *f, uint32_t filebno, char **blk)
 		if (blockno < 0) {
 			return blockno;
 		}
+		memset(diskaddr(blockno), 0, BLKSIZE);		
 		*filebaddr = blockno;
 	}
 	*blk = diskaddr(*filebaddr);
