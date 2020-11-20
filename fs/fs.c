@@ -158,6 +158,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 		if (alloc_result < 0) {
 			return -E_NO_DISK;
 		}
+		memset(diskaddr(alloc_result), 0, BLKSIZE);
 		f->f_indirect = alloc_result;
 	}
 	*ppdiskbno = ((uint32_t *) diskaddr(f->f_indirect))+(filebno-NDIRECT); // how do we access the block numbers in f_indirect?
