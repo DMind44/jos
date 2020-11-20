@@ -47,7 +47,7 @@ spawn(const char *prog, const char **argv)
 	//     Use the p_flags field in the Proghdr for each segment
 	//     to determine how to map the segment:
 	//
-	//	* If the ELF flags do not include ELF_PROG_FLAG_WRITE,
+	//	* If the ELF flags do not include ELF_PROG_FLAG_WRI TE,
 	//	  then the segment contains text and read-only data.
 	//	  Use read_map() to read the contents of this segment,
 	//	  and map the pages it returns directly into the child
@@ -101,7 +101,6 @@ spawn(const char *prog, const char **argv)
 	// Create new child environment
 	if ((r = sys_exofork()) < 0)
 		return r;
-	cprintf("childe env created: %x\n", r);
 	child = r;
 
 	// Set up trap frame, including initial stack.
@@ -233,7 +232,7 @@ init_stack(envid_t child, const char **argv, uintptr_t *init_esp)
 	//	  environment.)
 	//
 	//	* Set *init_esp to the initial stack pointer for the child,
-	//	  (Again, use an address valid in the child's environment.)
+//	  (Again, use an address valid in the child's environment.)
 	for (i = 0; i < argc; i++) {
 		argv_store[i] = UTEMP2USTACK(string_store);
 		strcpy(string_store, argv[i]);
@@ -303,14 +302,12 @@ static int
 copy_shared_pages(envid_t child)
 {
 	cprintf("spawn envid: %x\n", child);
-	envid_t p = ipc_find_env(ENV_TYPE_FS);
-	cprintf("fsenv: %x\n", p);
 	size_t pgnum;
 	for (pgnum = 0; pgnum < PGNUM(UTOP); pgnum++) {
 		if ((uvpd[(pgnum >> 10)] & PTE_U) && (uvpd[(pgnum >> 10)] & PTE_P)) {
 			if ( (uvpt[pgnum] & PTE_U) && (uvpt[pgnum] & PTE_P) && (uvpt[pgnum] & PTE_SHARE) ) {
 				int r;
-				r = sys_page_map(0, (void *)(pgnum*PGSIZE), child, (void *)(pgnum*PGSIZE), uvpt[(size_t)pgnum]&PTE_SYSCALL);
+				r = sys_page_map(thisenv->env_id, (void *)(pgnum*PGSIZE), child, (void *)(pgnum*PGSIZE), uvpt[(size_t)pgnum]&PTE_SYSCALL);
 				if (r < 0) {
 					panic("failed to map page in child.\n");
 				}

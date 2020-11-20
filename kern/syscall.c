@@ -191,7 +191,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		return -E_INVAL;
 	if (!(perm & (PTE_U | PTE_P)))
 		return -E_INVAL;
-	struct PageInfo * page = page_alloc(0);
+	struct PageInfo * page = page_alloc(ALLOC_ZERO);
 	if (page_insert(env->env_pgdir, page, va, perm) != 0) {
 		page_free(page);
 		return -E_NO_MEM;

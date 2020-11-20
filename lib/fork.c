@@ -53,7 +53,7 @@ duppage(envid_t envid, unsigned pn)
 	int r;
 	int perm = PTE_P | PTE_U;
 	// Handles shared pages
-	if (uvpt[(size_t)pn] & PTE_SHARE) {
+	if ((uvpt[(size_t)pn] & PTE_SHARE) == PTE_SHARE) {
 		r = sys_page_map(thisenv->env_id, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), uvpt[(size_t)pn]&PTE_SYSCALL);
 		if (r < 0) {
 			panic("failed to map page in child.\n");
