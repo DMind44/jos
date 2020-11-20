@@ -303,6 +303,8 @@ static int
 copy_shared_pages(envid_t child)
 {
 	cprintf("spawn envid: %x\n", child);
+	envid_t p = ipc_find_env(ENV_TYPE_FS);
+	cprintf("fsenv: %x\n", p);
 	size_t pgnum;
 	for (pgnum = 0; pgnum < PGNUM(UTOP); pgnum++) {
 		if ((uvpd[(pgnum >> 10)] & PTE_U) && (uvpd[(pgnum >> 10)] & PTE_P)) {

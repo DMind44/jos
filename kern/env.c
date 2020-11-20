@@ -382,7 +382,7 @@ env_create(uint8_t *binary, enum EnvType type)
 	e->env_type = type;
 	if (type == ENV_TYPE_FS) {
 		e->env_tf.tf_eflags |= FL_IOPL_MASK;
-	}
+	} 
 }
 
 //

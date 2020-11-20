@@ -140,9 +140,9 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	// set cpl to 3
 	tf->tf_cs = GD_UT | 3;
 	// enable interrupts
-	tf->tf_eflags = FL_IF;
+	tf->tf_eflags |= FL_IF;
 	//IOPL of 0
-	tf->tf_eflags &= FL_IOPL_0;
+	tf->tf_eflags &= ~FL_IOPL_MASK;
 	env->env_tf = *tf;
 	return 0;
 }
