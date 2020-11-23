@@ -146,11 +146,10 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 		*ppdiskbno = &f->f_direct[filebno];
 		return 0;
 	}
-	if (!alloc) {
-		return -E_NOT_FOUND;
-	}
-
 	if (f->f_indirect == 0) {
+		if (!alloc) {
+			return -E_NOT_FOUND;
+		}
 		int alloc_result = alloc_block();
 		if (alloc_result < 0) {
 			return -E_NO_DISK;

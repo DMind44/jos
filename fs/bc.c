@@ -75,7 +75,9 @@ flush_block(void *addr)
 	if (va_is_mapped(addr) && va_is_dirty(addr)) {
 		uint32_t secno = ((uint32_t)addr - DISKMAP) / SECTSIZE;
 		ide_write(secno, diskaddr(blockno), BLKSECTS);	
-		sys_page_map(thisenv->env_id, diskaddr(blockno), thisenv->env_id, diskaddr(blockno), PTE_SYSCALL);
+		int map_result = sys_page_map(thisenv->env_id, diskaddr(blockno), thisenv->env_id, diskaddr(blockno), PTE_SYSCALL);
+		if (map_result < 0 )
+			panic("sys_page_map failed.");
 	}
 }
 
