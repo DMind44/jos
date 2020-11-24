@@ -6,7 +6,7 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
-
+#include <kern/pmap.h>
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
@@ -25,6 +25,9 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display backtrace information", mon_backtrace },
+	// add command for diplaying page mappings
+	{ "showmappings", "Display physical page mappings", mon_showmappings },
+	// add command for setting, clearing or changing perm of any mapping in current addr space
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -71,6 +74,43 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 			(((int) eip) - info.eip_fn_addr));
 		ebp = (int *)*ebp;
 	}
+	return 0;
+}
+
+int
+mon_showmappings(int argc, char **argv, struct Trapframe *tf)
+{
+	int * ebp = (int *)read_ebp();	
+	int * arg = ebp + 2;	
+	char * start = (char *)argv[1];
+	char * end = (char *)argv[2];
+	void * start_va = (void *)strtol(start, &start+4, 16);
+	void * end_va = (void *)strtol(end, &end+4, 16);
+	cprintf("start address: %x \n", strtol(start, &start+4, 16));
+	cprintf("end address: %x \n", strtol(end, &end+4, 10));
+	// loop through page by page,
+	int i;
+	for (i = (int)start_va; i <= (int)end_va; i+=PGSIZE) {
+		pte_t * pte;
+		pde_t * pgdir = (pde_t *)rcr3();
+		cprintf("page dir: %x \n", pgdir);
+		cprintf("pde = %x \n",  &(pgdir[PDX(end_va)]));
+//		cprintf("*pde = %x \n", *(&(pgdir[PDX(start_va)])) );			    
+		struct PageInfo * page = page_lookup(pgdir, (void *)i, &pte);
+		cprintf("page dir: %x \n", rcr3());		
+		if (!page) {
+			cprintf("pte: %08x -> physical page: No page mapped \n", (void *) i);
+		}
+		else {
+			cprintf("pte: %08x -> physical page: %08x \n", (void *)i, PTE_ADDR(*pte));
+		}
+	}
+	// if pte found, print out the mapping [pte] - [physical page]
+	// otherwise say, no physical page
+	
+	// argv at 1 ,2
+	// go page by page
+	// print out ptes
 	return 0;
 }
 
