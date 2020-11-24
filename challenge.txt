@@ -1,0 +1,123 @@
+Worked on the single step and continue challenge.
+Goal: Modify the JOS monitor so that we can 'continue' execution from the current location and so that we can single step one instruction at a time.
+How it was implemented: We added two functions in monitor.c, one responsible for stepping and the other for continuing. The function that does the stepping simply sets the FL_TF eflag and the function for continuing clears the FL_TF eflag.
+
+Demo:
+modified breakpoint.c to look like this:
+void
+umain(int argc, char **argv)
+{
+	asm volatile("int $3");
+	cprintf("1st line after 1st breakpoint. \n");
+	cprintf("2nd line after 1st breakpoint. \n");
+	asm volatile("int $3");
+	cprintf("1st line after 2nd breakpoint. \n");
+	cprintf("2nd line after 2nd breakpoint. \n");
+}
+
+output when continue is used:
+97 % make run-breakpoint-nox
+...
+[00000000] new env 00001000
+Incoming TRAP frame at 0xefffffbc
+Incoming TRAP frame at 0xefffffbc
+Welcome to the JOS kernel monitor!
+Type 'help' for a list of commands.
+TRAP frame at 0xf0223000
+  edi  0x00000000
+  esi  0x00000000
+  ebp  0xeebfdfd0
+  oesp 0xefffffdc
+  ebx  0x00000000
+  edx  0x00000000
+  ecx  0x00000000
+  eax  0xeec00000
+  es   0x----0023
+  ds   0x----0023
+  trap 0x00000003 Breakpoint
+  err  0x00000000
+  eip  0x0080003b
+  cs   0x----001b
+  flag 0x00000092
+  esp  0xeebfdfbc
+  ss   0x----0023
+K> continue
+Incoming TRAP frame at 0xefffffbc
+1st line after 1st breakpoint. 
+Incoming TRAP frame at 0xefffffbc
+2nd line after 1st breakpoint. 
+Incoming TRAP frame at 0xefffffbc
+Welcome to the JOS kernel monitor!
+Type 'help' for a list of commands.
+TRAP frame at 0xf0223000
+  edi  0x00000000
+  esi  0x00000000
+  ebp  0xeebfdfd0
+  oesp 0xefffffdc
+  ebx  0x00000000
+  edx  0xeebfde88
+  ecx  0x00000020
+  eax  0x00000020
+  es   0x----0023
+  ds   0x----0023
+  trap 0x00000003 Breakpoint
+  err  0x00000000
+  eip  0x00800052
+  cs   0x----001b
+  flag 0x00000092
+  esp  0xeebfdfb8
+  ss   0x----0023
+
+output when step is used:
+98 % make run-breakpoint-nox
+...
+[00000000] new env 00001000
+Incoming TRAP frame at 0xefffffbc
+Incoming TRAP frame at 0xefffffbc
+Welcome to the JOS kernel monitor!
+Type 'help' for a list of commands.
+TRAP frame at 0xf0223000
+  edi  0x00000000
+  esi  0x00000000
+  ebp  0xeebfdfd0
+  oesp 0xefffffdc
+  ebx  0x00000000
+  edx  0x00000000
+  ecx  0x00000000
+  eax  0xeec00000
+  es   0x----0023
+  ds   0x----0023
+  trap 0x00000003 Breakpoint
+  err  0x00000000
+  eip  0x0080003b
+  cs   0x----001b
+  flag 0x00000092
+  esp  0xeebfdfbc
+  ss   0x----0023
+K> step
+Incoming TRAP frame at 0xefffffbc
+TRAP frame at 0xf0223000
+  edi  0x00000000
+  esi  0x00000000
+  ebp  0xeebfdfd0
+  oesp 0xefffffdc
+  ebx  0x00000000
+  edx  0x00000000
+  ecx  0x00000000
+  eax  0xeec00000
+  es   0x----0023
+  ds   0x----0023
+  trap 0x00000001 Debug
+  err  0x00000000
+  eip  0x00800040
+  cs   0x----001b
+  flag 0x00000192
+  esp  0xeebfdfb8
+  ss   0x----0023
+[00001000] free env 00001000
+Destroyed the only environment - nothing more to do!
+Welcome to the JOS kernel monitor!
+Type 'help' for a list of commands.
+K> 
+
+

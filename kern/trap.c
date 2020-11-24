@@ -65,7 +65,7 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 
-	// LAB 4: Your code here.
+
 
 
 	void DIVIDE_ERROR();
@@ -106,7 +106,7 @@ trap_init(void)
 	SETGATE(idt[17], 1, GD_KT, &ALIGNMENT_CHECK, 0);
 	SETGATE(idt[18], 1, GD_KT, &MACHINE_CHECK, 0);
 	SETGATE(idt[19], 1, GD_KT, &SIMD_FLOATING_POINT_EXCEPTION, 0);
-	SETGATE(idt[48], 0, GD_KT, &SYSTEM_CALL, 3);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, &SYSTEM_CALL, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -247,7 +247,6 @@ trap(struct Trapframe *tf)
 
 	// Dispatch based on what type of trap occurred
 	trap_dispatch(tf);
-
 	// Return to the current environment, which should be running.
 	assert(curenv && curenv->env_status == ENV_RUNNING);
 	env_run(curenv);
