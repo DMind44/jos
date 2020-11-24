@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+
+import re
+from gradelib import *
+
+r = Runner(save("jos.out"),
+           stop_breakpoint("readline"))
+
+def E(s, trim=False):
+    """Expand $En in s to the environment ID of the n'th user
+    environment."""
+
+    tmpl = "%x" if trim else "%08x"
+    return re.sub(r"\$E([0-9]+)",
+                  lambda m: tmpl % (0x1000 + int(m.group(1))-1), s)
+
+@test(5)
+def test_spin():
+    r.user_test("spin")
+    r.match(E(".00000000. new env $E1"),
+            "I am the parent.  Forking the child...",
+            E(".$E1. new env $E2"),
+            "I am the parent.  Running the child...",
+            "I am the child.  Spinning...",
+            "I am the parent.  Killing the child...",
+            E(".$E1. destroying $E2"),
+            E(".$E1. free env $E2"),
+            E(".$E1. exiting gracefully"),
+            E(".$E1. free env $E1"))
+
+@test(5)
+def test_stresssched():
+    r.user_test("stresssched", make_args=["CPUS=4"])
+    r.match(".000010... stresssched on CPU 0",
+            ".000010... stresssched on CPU 1",
+            ".000010... stresssched on CPU 2",
+            ".000010... stresssched on CPU 3",
+            no=[".*ran on two CPUs at once"])
+
+@test(5)
+def test_sendpage():
+    r.user_test("sendpage", make_args=["CPUS=2"])
+    r.match(".00000000. new env 00001000",
+            E(".00000000. new env $E1"),
+            E(".$E1. new env $E2"),
+            E("$E1 got message: hello child environment! how are you?", trim=True),
+            E("child received correct message", trim=True),
+            E("$E2 got message: hello parent environment! I'm good", trim=True),
+            E("parent received correct message", trim=True),
+            E(".$E1. exiting gracefully"),
+            E(".$E1. free env $E1"),
+            E(".$E2. exiting gracefully"),
+            E(".$E2. free env $E2"))
+
+@test(5)
+def test_pingpong():
+    r.user_test("pingpong", make_args=["CPUS=4"])
+    r.match(E(".00000000. new env $E1"),
+            E(".$E1. new env $E2"),
+            E("send 0 from $E1 to $E2", trim=True),
+            E("$E2 got 0 from $E1", trim=True),
+            E("$E1 got 1 from $E2", trim=True),
+            E("$E2 got 8 from $E1", trim=True),
+            E("$E1 got 9 from $E2", trim=True),
+            E("$E2 got 10 from $E1", trim=True),
+            E(".$E1. exiting gracefully"),
+            E(".$E1. free env $E1"),
+            E(".$E2. exiting gracefully"),
+            E(".$E2. free env $E2"))
+
+@test(5)
+def test_primes():
+    r.user_test("primes", stop_on_line("CPU .: 1877"), stop_on_line(".*panic"),
+                make_args=["CPUS=4"], timeout=60)
+    r.match(E(".00000000. new env $E1"),
+            E(".$E1. new env $E2"),
+            E("CPU .: 2 .$E2. new env $E3"),
+            E("CPU .: 3 .$E3. new env $E4"),
+            E("CPU .: 5 .$E4. new env $E5"),
+            E("CPU .: 7 .$E5. new env $E6"),
+            E("CPU .: 11 .$E6. new env $E7"),
+            E("CPU .: 1877 .$E289. new env $E290"))
+
+run_tests()

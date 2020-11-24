@@ -70,10 +70,13 @@ void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
-
-
-
-
+	
+	// initiate IRQs
+	void TIMER();
+	void KBD();
+	void SERIAL();
+	void SPURIOUS();
+	void IDE();
 
 	void DIVIDE_ERROR();
 	void DEBUG();
@@ -95,26 +98,31 @@ trap_init(void)
 	void SIMD_FLOATING_POINT_EXCEPTION();
 	void SYSTEM_CALL();
 	
-	SETGATE(idt[0], 1, GD_KT, &DIVIDE_ERROR, 0);
-	SETGATE(idt[1], 1, GD_KT, &DEBUG, 3);
+	SETGATE(idt[0], 0, GD_KT, &DIVIDE_ERROR, 0);
+	SETGATE(idt[1], 0, GD_KT, &DEBUG, 3);
 	SETGATE(idt[2], 0, GD_KT, &NON_MASKABLE_INTERRUPT, 0);
-	SETGATE(idt[3], 1, GD_KT, &BREAKPOINT, 3);
-	SETGATE(idt[4], 1, GD_KT, &OVERFLOW, 0);
-	SETGATE(idt[5], 1, GD_KT, &BOUND_RANGE_EXCEEDED, 0);
-	SETGATE(idt[6], 1, GD_KT, &INVALID_OPCODE, 0);
-	SETGATE(idt[7], 1, GD_KT, &DEVICE_NOT_AVAILABLE, 0);
-	SETGATE(idt[8], 1, GD_KT, &DOUBLE_FAULT, 0);
-	SETGATE(idt[10], 1, GD_KT, &INVALID_TSS, 0);
-	SETGATE(idt[11], 1, GD_KT, &SEGMENT_NOT_PRESENT, 0);
-	SETGATE(idt[12], 1, GD_KT, &STACK_FAULT, 0);
-	SETGATE(idt[13], 1, GD_KT, &GENERAL_PROTECTION, 0);
-	SETGATE(idt[14], 1, GD_KT, &PAGE_FAULT, 0);
-	SETGATE(idt[16], 1, GD_KT, &X87_FPU_FLOATINGPOINT_ERROR, 0);
-	SETGATE(idt[17], 1, GD_KT, &ALIGNMENT_CHECK, 0);
-	SETGATE(idt[18], 1, GD_KT, &MACHINE_CHECK, 0);
-	SETGATE(idt[19], 1, GD_KT, &SIMD_FLOATING_POINT_EXCEPTION, 0);
+	SETGATE(idt[3], 0, GD_KT, &BREAKPOINT, 3);
+	SETGATE(idt[4], 0, GD_KT, &OVERFLOW, 0);
+	SETGATE(idt[5], 0, GD_KT, &BOUND_RANGE_EXCEEDED, 0);
+	SETGATE(idt[6], 0, GD_KT, &INVALID_OPCODE, 0);
+	SETGATE(idt[7], 0, GD_KT, &DEVICE_NOT_AVAILABLE, 0);
+	SETGATE(idt[8], 0, GD_KT, &DOUBLE_FAULT, 0);
+	SETGATE(idt[10], 0, GD_KT, &INVALID_TSS, 0);
+	SETGATE(idt[11], 0, GD_KT, &SEGMENT_NOT_PRESENT, 0);
+	SETGATE(idt[12], 0, GD_KT, &STACK_FAULT, 0);
+	SETGATE(idt[13], 0, GD_KT, &GENERAL_PROTECTION, 0);
+	SETGATE(idt[14], 0, GD_KT, &PAGE_FAULT, 0); // changed this is_trap from one to zero because using an interrupt gate ensures that interrupts are disabled in kernel mode. Do I need to do this for all the other gates?
+	SETGATE(idt[16], 0, GD_KT, &X87_FPU_FLOATINGPOINT_ERROR, 0);
+	SETGATE(idt[17], 0, GD_KT, &ALIGNMENT_CHECK, 0);
+	SETGATE(idt[18], 0, GD_KT, &MACHINE_CHECK, 0);
+	SETGATE(idt[19], 0, GD_KT, &SIMD_FLOATING_POINT_EXCEPTION, 0);
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, &SYSTEM_CALL, 3);
 
+	SETGATE(idt[IRQ_OFFSET+IRQ_TIMER], 0, GD_KT, &TIMER, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_KBD], 0, GD_KT, &KBD, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_SERIAL], 0, GD_KT, &SERIAL, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_SPURIOUS], 0, GD_KT, &SPURIOUS, 0);
+	SETGATE(idt[IRQ_OFFSET+IRQ_IDE], 0, GD_KT, &IDE, 0);
 	// Per-CPU setup 
 	trap_init_percpu();
 }
@@ -243,6 +251,9 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 7: Your code here.
+	case IRQ_OFFSET + IRQ_TIMER:
+		lapic_eoi();
+		sched_yield(); 
 	default:
 		// Unexpected trap: The user process or the kernel has a bug.
 		print_trapframe(tf);
