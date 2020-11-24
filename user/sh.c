@@ -1,7 +1,7 @@
 #include <inc/lib.h>
 
 #define BUFSIZ 1024		/* Find the buffer overrun bug! */
-int debug = 0;
+int debug = 2;
 
 
 // gettoken(s, 0) prepares gettoken for subsequent calls and returns 0.
@@ -190,6 +190,7 @@ runit:
 // words get nul-terminated.
 #define WHITESPACE " \t\r\n"
 #define SYMBOLS "<|>&;()"
+#define DOUBLEQUOTE "\""
 
 int
 _gettoken(char *s, char **p1, char **p2)
@@ -224,10 +225,23 @@ _gettoken(char *s, char **p1, char **p2)
 			cprintf("TOK %c\n", t);
 		return t;
 	}
-	*p1 = s;
-	while (*s && !strchr(WHITESPACE SYMBOLS, *s))
+	// skip over " "
+	// increment s
+	// separate loop for this case
+	if (strchr(DOUBLEQUOTE, *s)) {
 		s++;
-	*p2 = s;
+		*p1 = s;
+		while (*s && !strchr(DOUBLEQUOTE, *s))
+			s++;
+		*s = 0;
+		*p2 = s+1;
+	}
+	else {
+		*p1 = s;
+		while (*s && !strchr(WHITESPACE SYMBOLS, *s))
+			s++;
+		*p2 = s;
+	}
 	if (debug > 1) {
 		t = **p2;
 		**p2 = 0;
