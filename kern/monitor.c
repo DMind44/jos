@@ -25,9 +25,7 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display backtrace information", mon_backtrace },
-	// add command for diplaying page mappings
 	{ "showmappings", "Display physical page mappings", mon_showmappings },
-	// add command for setting, clearing or changing perm of any mapping in current addr space
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -107,6 +105,7 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
+// Se
 
 
 /***** Kernel monitor command interpreter *****/
