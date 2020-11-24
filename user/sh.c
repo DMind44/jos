@@ -1,7 +1,7 @@
 #include <inc/lib.h>
 
 #define BUFSIZ 1024		/* Find the buffer overrun bug! */
-int debug = 0;
+int debug = 2;
 
 
 // gettoken(s, 0) prepares gettoken for subsequent calls and returns 0.
@@ -53,9 +53,14 @@ again:
 			// then check whether 'fd' is 0.
 			// If not, dup 'fd' onto file descriptor 0,
 			// then close the original 'fd'.
-
-			// LAB 5: Your code here.
-			panic("< redirection not implemented");
+			if ((fd = open(t, O_RDONLY)) < 0) {
+				cprintf("open %s for read: %e", t, fd);
+				exit();
+			}
+			if (fd != 0) {
+				dup(fd, 0);
+				close(fd);
+			}
 			break;
 
 		case '>':	// Output redirection
@@ -185,6 +190,7 @@ runit:
 // words get nul-terminated.
 #define WHITESPACE " \t\r\n"
 #define SYMBOLS "<|>&;()"
+#define DOUBLEQUOTE "\""
 
 int
 _gettoken(char *s, char **p1, char **p2)
@@ -219,10 +225,23 @@ _gettoken(char *s, char **p1, char **p2)
 			cprintf("TOK %c\n", t);
 		return t;
 	}
-	*p1 = s;
-	while (*s && !strchr(WHITESPACE SYMBOLS, *s))
+	// skip over " "
+	// increment s
+	// separate loop for this case
+	if (strchr(DOUBLEQUOTE, *s)) {
 		s++;
-	*p2 = s;
+		*p1 = s;
+		while (*s && !strchr(DOUBLEQUOTE, *s))
+			s++;
+		*s = 0;
+		*p2 = s+1;
+	}
+	else {
+		*p1 = s;
+		while (*s && !strchr(WHITESPACE SYMBOLS, *s))
+			s++;
+		*p2 = s;
+	}
 	if (debug > 1) {
 		t = **p2;
 		**p2 = 0;

@@ -1,0 +1,4 @@
+1) We don't need to worry about the privilege being lost or granted
+uneccesarily, because the eflags are pushed and popped along with the
+registers during context switches. The code is located in lib/pfentry.S, where
+it restores the EFLAGS.

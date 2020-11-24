@@ -53,6 +53,10 @@ sys_env_destroy(envid_t envid)
 	struct Env *e;
 	if ((r = envid2env(envid, &e, 1)) < 0)
 		return r;
+	if (e == curenv)
+		cprintf("[%08x] exiting gracefully\n", curenv->env_id);
+	else
+		cprintf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
 	env_destroy(e);
 	return 0;
 }
@@ -124,10 +128,17 @@ sys_env_set_status(envid_t envid, int status)
 static int
 sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 {
-	// LAB 5: Your code here.
-	// Remember to check whether the user has supplied us with a good
-	// address!
-	panic("sys_env_set_trapframe not implemented");
+	struct Env * env;
+	int envid_result = envid2env(envid, &env, 1);
+	if (envid_result < 0)
+		return -E_BAD_ENV;
+	// Checks whether the user has supplied us with a good address
+	user_mem_assert(curenv, tf, sizeof(struct Trapframe), PTE_U|PTE_P);
+	tf->tf_cs = GD_UT | 3;
+	tf->tf_eflags |= FL_IF;
+	tf->tf_eflags &= ~FL_IOPL_MASK;
+	env->env_tf = *tf;
+	return 0;
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -174,7 +185,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		return -E_INVAL;
 	if (!(perm & (PTE_U | PTE_P)))
 		return -E_INVAL;
-	struct PageInfo * page = page_alloc(0);
+	struct PageInfo * page = page_alloc(ALLOC_ZERO);
 	if (page_insert(env->env_pgdir, page, va, perm) != 0) {
 		page_free(page);
 		return -E_NO_MEM;
@@ -354,6 +365,7 @@ sys_ipc_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	struct Env * e;	
 	if (envid2env(envid, &e, 0) < 0) {
+		cprintf("failing envid: %x\n", envid);
 		return -E_BAD_ENV;
 	}
 	// check if there is a recving env, if not, we save our parameters
@@ -403,6 +415,7 @@ sys_ipc_recv(void *dstva)
 	envid_t sendenvid = curenv->env_senders[curenv->senders_count];
 	struct Env *sendenv;
 	if (envid2env(sendenvid, &sendenv, 0) < 0) {
+		cprintf("recv failing envid: %x\n", sendenvid);
 		return -E_BAD_ENV;
 	}
 	curenv->env_ipc_dstva = dstva;
@@ -455,6 +468,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_ipc_recv((void *)a1);
 	case SYS_ipc_send:
 		return sys_ipc_send( (envid_t) a1, a2, (void *) a3, (unsigned) a4); 
+	case SYS_env_set_trapframe:
+		return sys_env_set_trapframe((envid_t) a1, (struct Trapframe *)a2);
 	default:
 		return -E_INVAL;
 	}
