@@ -1,0 +1,7 @@
+Worked on the Quoting Challenge.
+Goal: To add a feature to the shell where typing in the command echo "a | b" makes it such that the shell ignores the double quotes and prints out the message within the quotes.
+How it was implemented: In the user/sh.c file, We defined a constant DOUBLEQUOTE and added an if statement in _gettoken that checks to see if the string contains a double quote. If it does, we set the start and end pointers, p1 and p2 of the token to surround the desired word. In doing this, we also insert a NULL character just before the p2 pointer to ensure that the shell recognized the end of the word. This sets up the runcmd function to be able to recognize the word inside the quotation marks.
+
+Demo:
+command run: echo "a | b"
+output without debug on: a | b
