@@ -131,6 +131,7 @@ mon_setperm(int argc, char **argv, struct Trapframe *tf)
 			cprintf("Failed to change permision bits of mapping. \n");
 			return 0;
 		}
+		tlbflush();
 		cprintf("Permision bits changed successfully. \n");
 	}
 	return 0;
@@ -154,6 +155,7 @@ mon_clearperm(int argc, char **argv, struct Trapframe *tf)
 			cprintf("Failed to clear permision bits of mapping. \n");
 			return 0;
 		}
+		tlbflush();
 		cprintf("Permision bits cleared successfully. \n");
 	}
 	return 0;

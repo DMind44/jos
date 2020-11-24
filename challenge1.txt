@@ -25,3 +25,14 @@ pte: f0004000 -> physical page: 00004000 PTE_W PTE_P
 pte: f0005000 -> physical page: 00005000 PTE_W PTE_P
 K>
 
+Output for clearing permissions
+K> clearperm 0xf0000000
+Permision bits cleared successfully. 
+K> showmappings 0xf0000000 0xf0005000
+pte: f0000000 -> physical page: 00000000 PTE_P
+pte: f0001000 -> physical page: 00001000 PTE_W PTE_P
+pte: f0002000 -> physical page: 00002000 PTE_W PTE_P
+pte: f0003000 -> physical page: 00003000 PTE_W PTE_P
+pte: f0004000 -> physical page: 00004000 PTE_W PTE_P
+pte: f0005000 -> physical page: 00005000 PTE_W PTE_P
+K> 
