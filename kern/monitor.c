@@ -26,6 +26,8 @@ static struct Command commands[] = {
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display backtrace information", mon_backtrace },
 	{ "showmappings", "Display physical page mappings", mon_showmappings },
+	{ "setperm", "Set the permission bits of a page mapping", mon_setperm },
+	{ "clearperm", "Clear the permission bits of a page mapping", mon_clearperm },
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -105,8 +107,55 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
-// Se
+// Set mapping of any mapping in current address space.
+int
+mon_setperm(int argc, char **argv, struct Trapframe *tf)
+{
+	char * va_input = (char *)argv[1];
+	char * perm_input = (char *)argv[2];
+	void * va = (void *)strtol(va_input, NULL, 16);
+	int perm = (int)strtol(perm_input, NULL, 16);
+	pde_t * pgdir = (pde_t *)KADDR(rcr3());
+	pte_t * pte;
+	struct PageInfo * page = page_lookup(pgdir, (void *)va, &pte);
+	if (!page) {
+		cprintf("This page has no mapping. You cannot set its permission bit. \n");
+	}
+	else {
+		int prev_perm = *pte&PTE_SYSCALL;
+		int insert_result = page_insert(pgdir, page, va, prev_perm | perm);
+		if (insert_result < 0) {
+			cprintf("Failed to change permision bits of mapping. \n");
+			return 0;
+		}
+		cprintf("Permision bits changed successfully. \n");
+	}
+	return 0;
+}
 
+// Clear permissions for any mapping in current address space.
+int
+mon_clearperm(int argc, char **argv, struct Trapframe *tf)
+{
+	char * va_input = (char *)argv[1];
+	void * va = (void *)strtol(va_input, NULL, 16);
+	pde_t * pgdir = (pde_t *)KADDR(rcr3());
+	pte_t * pte;
+	struct PageInfo * page = page_lookup(pgdir, (void *)va, &pte);
+	if (!page) {
+		cprintf("This page has no mapping. You cannot clear its permission bit. \n");
+	}
+	else {
+		int insert_result = page_insert(pgdir, page, va, PTE_P);
+		if (insert_result < 0) {
+			cprintf("Failed to clear permision bits of mapping. \n");
+			return 0;
+		}
+		cprintf("Permision bits cleared successfully. \n");
+	}
+	return 0;
+	
+}
 
 /***** Kernel monitor command interpreter *****/
 
