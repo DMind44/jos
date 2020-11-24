@@ -76,41 +76,34 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	}
 	return 0;
 }
-
+// Display all the physical page mappings that apply to a
+// particular range of virtual/linear addresses.
 int
 mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 {
-	int * ebp = (int *)read_ebp();	
-	int * arg = ebp + 2;	
 	char * start = (char *)argv[1];
 	char * end = (char *)argv[2];
-	void * start_va = (void *)strtol(start, &start+4, 16);
-	void * end_va = (void *)strtol(end, &end+4, 16);
-	cprintf("start address: %x \n", strtol(start, &start+4, 16));
-	cprintf("end address: %x \n", strtol(end, &end+4, 10));
-	// loop through page by page,
+	void * start_va = (void *)strtol(start, NULL, 16);
+	void * end_va = (void *)strtol(end, NULL, 16);
 	int i;
 	for (i = (int)start_va; i <= (int)end_va; i+=PGSIZE) {
 		pte_t * pte;
-		pde_t * pgdir = (pde_t *)rcr3();
-		cprintf("page dir: %x \n", pgdir);
-		cprintf("pde = %x \n",  &(pgdir[PDX(end_va)]));
-//		cprintf("*pde = %x \n", *(&(pgdir[PDX(start_va)])) );			    
+		pde_t * pgdir = (pde_t *)KADDR(rcr3());
 		struct PageInfo * page = page_lookup(pgdir, (void *)i, &pte);
-		cprintf("page dir: %x \n", rcr3());		
 		if (!page) {
 			cprintf("pte: %08x -> physical page: No page mapped \n", (void *) i);
 		}
 		else {
-			cprintf("pte: %08x -> physical page: %08x \n", (void *)i, PTE_ADDR(*pte));
+			cprintf("pte: %08x -> physical page: %08x", (void *)i, PTE_ADDR(*pte));
+			if (*pte&PTE_U) {
+				cprintf(" PTE_U");
+			}
+			if (*pte&PTE_W) {
+				cprintf(" PTE_W");
+			}
+			cprintf("\n");
 		}
 	}
-	// if pte found, print out the mapping [pte] - [physical page]
-	// otherwise say, no physical page
-	
-	// argv at 1 ,2
-	// go page by page
-	// print out ptes
 	return 0;
 }
 
