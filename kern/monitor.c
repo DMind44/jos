@@ -27,8 +27,8 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display backtrace information", mon_backtrace },
-	// add command for continue
 	{ "continue", "Continue execution from breakpoint", mon_continue },
+	{ "step", "Single step one instruction at a time", mon_step },
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -78,27 +78,20 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	return 0;
 }
 
-// Single step
+// Single step by one instruction.
 int
 mon_step(int argc, char **argv, struct Trapframe *tf)
 {
 	tf->tf_eflags |= FL_TF;
 	return -1;
 }
-// Continue from breakpoint instruction. Ask this at office hours tomorrow. 
+
+// Continue from breakpoint instruction.
 int
 mon_continue(int argc, char ** argv, struct Trapframe *tf)
 {
-	// look into tf
-	// remove the breakpoint. How do I remove the breakpoint?
-//	tf->tf_ds &= 0xFFFFFFF0;
-//	tf->tf_es &= 0xFFFFFFF0;
-//	tf->tf_eflags |= FL_RF;
-	// set eip to previous instruction
-//	tf->tf_eip -= 1;
+
 	tf->tf_eflags &= ~FL_TF;
-	// continue running. How do I leave the monitor and go back to executing?
-//	env_pop_tf(tf);
 	return -1;
 	
 }
