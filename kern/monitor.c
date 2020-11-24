@@ -101,6 +101,9 @@ mon_showmappings(int argc, char **argv, struct Trapframe *tf)
 			if (*pte&PTE_W) {
 				cprintf(" PTE_W");
 			}
+			if (*pte&PTE_P) {
+				cprintf(" PTE_P");
+			}
 			cprintf("\n");
 		}
 	}
