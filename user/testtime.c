@@ -5,6 +5,7 @@ void
 sleep(int sec)
 {
 	unsigned now = sys_time_msec();
+	cprintf("now: %d \n", now);
 	unsigned end = now + sec * 1000;
 
 	if ((int)now < 0 && (int)now > -MAXERROR)
