@@ -18,7 +18,6 @@ pgfault(struct UTrapframe *utf)
 	void *addr = (void *) utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
 	int r;
-
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
 	if ( ((err & FEC_WR) == 0) || (uvpt[PGNUM(ROUNDDOWN(addr, PGSIZE))] & PTE_COW) == 0) {
@@ -91,7 +90,7 @@ fork(void)
 		panic("sys_exofork failed: %e", envid);
 	}
 	if (envid == 0) {
-		thisenv = &envs[ENVX(sys_getenvid())];
+		// thisenv is implemented with a macro.
 		return 0;
 	}
 	// exception stack for child.
@@ -120,10 +119,21 @@ fork(void)
 }
 
 // Challenge!
+static int
+duppage_share(envid_t envid, unsigned pn)
+{
+	int r;
+	int perm = uvpt[(size_t)pn]&PTE_SYSCALL;
+	r = sys_page_map(thisenv->env_id, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), perm | PTE_SHARE);
+	if (r < 0) {
+		panic("failed to map page in child.\n");
+	}
+	return 0;
+}
+
 int
 sfork(void)
 {
-	// have the parent and child share all pages except the pages in stack area which are marked copy-on-write.
 	set_pgfault_handler(pgfault);
 	envid_t envid;
 	envid = sys_exofork();
@@ -131,7 +141,7 @@ sfork(void)
 		panic("sys_exofork failed: %e", envid);
 	}
 	if (envid == 0) {
-		thisenv = &envs[ENVX(sys_getenvid())];
+		// thisenv is implemented with a macro
 		return 0;
 	}
 	// exception stack for child.
@@ -143,7 +153,13 @@ sfork(void)
 	for (pgnum = 0; pgnum < PGNUM(UTOP)-1; pgnum++) {
 		if ((uvpd[(pgnum >> 10)] & PTE_U) && (uvpd[(pgnum >> 10)] & PTE_P)) {
 			if ( (uvpt[pgnum] & PTE_U) && (uvpt[pgnum] & PTE_P) ) {
-				duppage_share(envid, pgnum);
+				// page is in stack area, do copy-on-write
+				if (pgnum >= PGNUM(USTACKTOP)-1) {
+					duppage(envid, pgnum);
+				}
+				else {
+					duppage_share(envid, pgnum);
+				}
 			}
 		}
 	}
@@ -156,32 +172,5 @@ sfork(void)
 		return set_status_result;
 	}
 	return envid;
-	
-	panic("sfork not implemented");
-	return -E_INVAL;
-}
-
-static int
-duppage_share(envid_t envid, unsigned pn)
-{
-	int r;
-	int perm = PTE_P | PTE_U;
-	if ((uvpt[(size_t)pn] & PTE_SHARE) == PTE_SHARE) {
-		r = sys_page_map(thisenv->env_id, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), perm | PTE_SHARE);
-		if (r < 0) {
-			panic("failed to map page in child.\n");
-		}
-		int map_result = sys_page_map(thisenv->env_id, (void *)(pn*PGSIZE), thisenv->env_id, (void *)(pn*PGSIZE), perm | PTE_SHARE);
-		if (map_result < 0) {
-			panic("failed to map page.");
-		}
-	}
-	else { // Handling pages that are present but not copy-on-write or writable
-	       	r = sys_page_map(thisenv->env_id, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), perm);
-		if (r < 0) {
-			panic("failed to map present page at child.");
-		}
-	}
-	return 0;
 }
 
