@@ -18,7 +18,6 @@ pgfault(struct UTrapframe *utf)
 	void *addr = (void *) utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
 	int r;
-
 	// Check that the faulting access was (1) a write, and (2) to a
 	// copy-on-write page.  If not, panic.
 	if ( ((err & FEC_WR) == 0) || (uvpt[PGNUM(ROUNDDOWN(addr, PGSIZE))] & PTE_COW) == 0) {
@@ -91,7 +90,7 @@ fork(void)
 		panic("sys_exofork failed: %e", envid);
 	}
 	if (envid == 0) {
-		thisenv = &envs[ENVX(sys_getenvid())];
+		// thisenv is implemented with a macro.
 		return 0;
 	}
 	// exception stack for child.
@@ -120,9 +119,58 @@ fork(void)
 }
 
 // Challenge!
+static int
+duppage_share(envid_t envid, unsigned pn)
+{
+	int r;
+	int perm = uvpt[(size_t)pn]&PTE_SYSCALL;
+	r = sys_page_map(thisenv->env_id, (void *)(pn*PGSIZE), envid, (void *)(pn*PGSIZE), perm | PTE_SHARE);
+	if (r < 0) {
+		panic("failed to map page in child.\n");
+	}
+	return 0;
+}
+
 int
 sfork(void)
 {
-	panic("sfork not implemented");
-	return -E_INVAL;
+	set_pgfault_handler(pgfault);
+	envid_t envid;
+	envid = sys_exofork();
+	if (envid < 0) {
+		panic("sys_exofork failed: %e", envid);
+	}
+	if (envid == 0) {
+		// thisenv is implemented with a macro
+		return 0;
+	}
+	// exception stack for child.
+	int alloc_result = sys_page_alloc(envid, (void *) UXSTACKTOP - PGSIZE, PTE_P | PTE_U | PTE_W);
+	if (alloc_result < 0) {
+		panic("cannot allocate page for exception stack");
+	}
+	size_t pgnum;
+	for (pgnum = 0; pgnum < PGNUM(UTOP)-1; pgnum++) {
+		if ((uvpd[(pgnum >> 10)] & PTE_U) && (uvpd[(pgnum >> 10)] & PTE_P)) {
+			if ( (uvpt[pgnum] & PTE_U) && (uvpt[pgnum] & PTE_P) ) {
+				// page is in stack area, do copy-on-write
+				if (pgnum >= PGNUM(USTACKTOP)-1) {
+					duppage(envid, pgnum);
+				}
+				else {
+					duppage_share(envid, pgnum);
+				}
+			}
+		}
+	}
+	int set_upcall_result = sys_env_set_pgfault_upcall(envid, thisenv->env_pgfault_upcall);
+	if (set_upcall_result < 0 ) {
+		panic("setting upcall for child failed.");
+	}
+	int set_status_result = sys_env_set_status(envid, ENV_RUNNABLE);
+	if (set_status_result < 0) {
+		return set_status_result;
+	}
+	return envid;
 }
+
