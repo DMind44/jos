@@ -6,7 +6,7 @@
 #include <inc/memlayout.h>
 #include <inc/assert.h>
 #include <inc/x86.h>
-
+#include <kern/pmap.h>
 #include <kern/console.h>
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
@@ -26,6 +26,9 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display backtrace information", mon_backtrace },
+	{ "showmappings", "Display physical page mappings", mon_showmappings },
+	{ "setperm", "Set the permission bits of a page mapping", mon_setperm },
+	{ "clearperm", "Clear the permission bits of a page mapping", mon_clearperm },
 };
 
 /***** Implementations of basic kernel monitor commands *****/
@@ -74,8 +77,91 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	}
 	return 0;
 }
+// Display all the physical page mappings that apply to a
+// particular range of virtual/linear addresses.
+int
+mon_showmappings(int argc, char **argv, struct Trapframe *tf)
+{
+	char * start = (char *)argv[1];
+	char * end = (char *)argv[2];
+	void * start_va = (void *)strtol(start, NULL, 16);
+	void * end_va = (void *)strtol(end, NULL, 16);
+	int i;
+	for (i = (int)start_va; i <= (int)end_va; i+=PGSIZE) {
+		pte_t * pte;
+		pde_t * pgdir = (pde_t *)KADDR(rcr3());
+		struct PageInfo * page = page_lookup(pgdir, (void *)i, &pte);
+		if (!page) {
+			cprintf("pte: %08x -> physical page: No page mapped \n", (void *) i);
+		}
+		else {
+			cprintf("pte: %08x -> physical page: %08x", (void *)i, PTE_ADDR(*pte));
+			if (*pte&PTE_U) {
+				cprintf(" PTE_U");
+			}
+			if (*pte&PTE_W) {
+				cprintf(" PTE_W");
+			}
+			if (*pte&PTE_P) {
+				cprintf(" PTE_P");
+			}
+			cprintf("\n");
+		}
+	}
+	return 0;
+}
 
+// Set mapping of any mapping in current address space.
+int
+mon_setperm(int argc, char **argv, struct Trapframe *tf)
+{
+	char * va_input = (char *)argv[1];
+	char * perm_input = (char *)argv[2];
+	void * va = (void *)strtol(va_input, NULL, 16);
+	int perm = (int)strtol(perm_input, NULL, 16);
+	pde_t * pgdir = (pde_t *)KADDR(rcr3());
+	pte_t * pte;
+	struct PageInfo * page = page_lookup(pgdir, (void *)va, &pte);
+	if (!page) {
+		cprintf("This page has no mapping. You cannot set its permission bit. \n");
+	}
+	else {
+		int prev_perm = *pte&PTE_SYSCALL;
+		int insert_result = page_insert(pgdir, page, va, prev_perm | perm);
+		if (insert_result < 0) {
+			cprintf("Failed to change permision bits of mapping. \n");
+			return 0;
+		}
+		tlbflush();
+		cprintf("Permision bits changed successfully. \n");
+	}
+	return 0;
+}
 
+// Clear permissions for any mapping in current address space.
+int
+mon_clearperm(int argc, char **argv, struct Trapframe *tf)
+{
+	char * va_input = (char *)argv[1];
+	void * va = (void *)strtol(va_input, NULL, 16);
+	pde_t * pgdir = (pde_t *)KADDR(rcr3());
+	pte_t * pte;
+	struct PageInfo * page = page_lookup(pgdir, (void *)va, &pte);
+	if (!page) {
+		cprintf("This page has no mapping. You cannot clear its permission bit. \n");
+	}
+	else {
+		int insert_result = page_insert(pgdir, page, va, PTE_P);
+		if (insert_result < 0) {
+			cprintf("Failed to clear permision bits of mapping. \n");
+			return 0;
+		}
+		tlbflush();
+		cprintf("Permision bits cleared successfully. \n");
+	}
+	return 0;
+	
+}
 
 /***** Kernel monitor command interpreter *****/
 
